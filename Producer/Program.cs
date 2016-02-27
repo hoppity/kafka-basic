@@ -32,17 +32,18 @@ namespace Producer
             while (!stop)
             {
                 Thread.Sleep(1000);
-                var batch = new[]
-                {
-                    new ProducerData<string, Message>("test.topic", new[]
-                    {
-                        new Message(
-                            Encoding.UTF8.GetBytes(DateTime.UtcNow.Ticks.ToString()),
-                            Encoding.UTF8.GetBytes("1"),
-                            CompressionCodecs.NoCompressionCodec
-                            )
-                    }),
-                };
+                var batch =
+                    Enumerable.Range(0, 1000)
+                        .Select(i =>
+                            new ProducerData<string, Message>("test.topic", new[]
+                            {
+                                new Message(
+                                    Encoding.UTF8.GetBytes(DateTime.UtcNow.Ticks.ToString()),
+                                    Encoding.UTF8.GetBytes(i.ToString()),
+                                    CompressionCodecs.NoCompressionCodec
+                                    )
+                            })
+                        );
                 var time = DateTime.UtcNow.Ticks;
                 kafkaProducer.Send(batch);
                 var taken = DateTime.UtcNow.Ticks - time;
