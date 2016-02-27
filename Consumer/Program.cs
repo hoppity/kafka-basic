@@ -44,7 +44,11 @@ namespace Consumer
             Console.CancelKeyPress += (sender, eventArgs) => cancellationTokenSource.Cancel();
             foreach (Message message in stream.GetCancellable(cancellationTokenSource.Token))
             {
-                Console.WriteLine($"{message.PartitionId}-{message.Offset}:{Encoding.UTF8.GetString(message.Key)}-{Encoding.UTF8.GetString(message.Payload)}");
+                var time = DateTime.UtcNow.Ticks;
+                var text = Encoding.UTF8.GetString(message.Payload);
+                var value = long.Parse(text);
+                var diff = (time - value) / 10000M;
+                Console.WriteLine($"{message.PartitionId}-{message.Offset}:{Encoding.UTF8.GetString(message.Key)}-{text} in {diff}ms");
             }
         }
 
