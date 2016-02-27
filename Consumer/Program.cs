@@ -16,12 +16,13 @@ namespace Consumer
     {
         static void Main(string[] args)
         {
-            var zookeeperString = "192.168.33.10:2181";
-            var consumerGroupId = "test.group";
-            var uniqueConsumerId = "test.group." + Guid.NewGuid().ToString("N");
+            var zookeeperString = args.Length > 0 ? args[0] : "192.168.33.10:2181";
+            var consumerGroupId = args.Length > 1 ? args[1] : "test.group";
+            var testTopic = args.Length > 2 ? args[2] : "test.topic";
+
+            var uniqueConsumerId = consumerGroupId + "." + Guid.NewGuid().ToString("N");
             var m_BufferMaxNoOfMessages = 1000;
             var fetchSize = 11 * 1024 * 1024;
-            var testTopic = "test.topic";
 
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));

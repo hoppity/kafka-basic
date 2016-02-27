@@ -16,10 +16,11 @@ namespace Producer
     {
         static void Main(string[] args)
         {
+            var kafkaServerName = args.Length > 0 ? args[0] : "192.168.33.10";
+            var testTopic = args.Length > 0 ? args[1] : "test.topic";
+
             var brokerId = 0;
-            var kafkaServerName = "192.168.33.10";
             var kafkaPort = 9092;
-            var testTopic = "test.topic.1";
 
             var timer = Metric.Timer("Sent", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
