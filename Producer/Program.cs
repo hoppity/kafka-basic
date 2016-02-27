@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Kafka.Client.Cfg;
 using Kafka.Client.Messages;
 using Kafka.Client.Producers;
+using Metrics;
 
 namespace Producer
 {
@@ -19,6 +20,9 @@ namespace Producer
             var kafkaServerName = "192.168.33.10";
             var kafkaPort = 9092;
             var testTopic = "test.topic.1";
+
+            var timer = Metric.Timer("Sent", Unit.Events);
+            Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
             var brokerConfig = new BrokerConfiguration()
             {
@@ -47,8 +51,8 @@ namespace Producer
                         );
                 var time = DateTime.UtcNow.Ticks;
                 kafkaProducer.Send(batch);
-                var taken = (DateTime.UtcNow.Ticks - time) / 10000;
-                Console.WriteLine($"{DateTime.Now.Ticks}:Sent in {taken}ms");
+                var diff = (DateTime.UtcNow.Ticks - time) / 10000;
+                timer.Record(diff, TimeUnit.Milliseconds);
             }
         }
     }
