@@ -8,6 +8,7 @@ using Kafka.Client.Messages;
 using Kafka.Client.Requests;
 using Kafka.Client.Serialization;
 using System.Text;
+using Metrics;
 
 namespace Consumer
 {
@@ -20,6 +21,10 @@ namespace Consumer
             var uniqueConsumerId = "test.group." + Guid.NewGuid().ToString("N");
             var m_BufferMaxNoOfMessages = 1000;
             var fetchSize = 11 * 1024 * 1024;
+            var testTopic = "test.topic";
+
+            var timer = Metric.Timer("Received", Unit.Events);
+            Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
             // Here we create a balanced consumer on one consumer machine for consumerGroupId. All machines consuming for this group will get balanced together
             ConsumerConfiguration config = new ConsumerConfiguration
@@ -37,18 +42,22 @@ namespace Consumer
             // grab streams for desired topics 
             var streams = balancedConsumer.CreateMessageStreams(new ConcurrentDictionary<string, int>(new Dictionary<string, int>
             {
-                { "test.topic", 1 }
+                { testTopic, 1 }
             }), new DefaultDecoder());
-            var stream = streams["test.topic"][0];
+            var stream = streams[testTopic][0];
             var cancellationTokenSource = new CancellationTokenSource();
-            Console.CancelKeyPress += (sender, eventArgs) => cancellationTokenSource.Cancel();
+            Console.CancelKeyPress += (sender, eventArgs) =>
+            {
+                cancellationTokenSource.Cancel();
+                balancedConsumer.Dispose();
+            };
             foreach (Message message in stream.GetCancellable(cancellationTokenSource.Token))
             {
                 var time = DateTime.UtcNow.Ticks;
                 var text = Encoding.UTF8.GetString(message.Payload);
                 var value = long.Parse(text);
-                var diff = (time - value) / 10000M;
-                Console.WriteLine($"{message.PartitionId}-{message.Offset}:{Encoding.UTF8.GetString(message.Key)}-{text} in {diff}ms");
+                var diff = (time - value) / 10000;
+                timer.Record(diff, TimeUnit.Milliseconds);
             }
         }
 

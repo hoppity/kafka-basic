@@ -18,6 +18,7 @@ namespace Producer
             var brokerId = 0;
             var kafkaServerName = "192.168.33.10";
             var kafkaPort = 9092;
+            var testTopic = "test.topic.1";
 
             var brokerConfig = new BrokerConfiguration()
             {
@@ -31,11 +32,11 @@ namespace Producer
             Console.CancelKeyPress += (sender, eventArgs) => stop = true;
             while (!stop)
             {
-                Thread.Sleep(1000);
+                Thread.Sleep(10);
                 var batch =
-                    Enumerable.Range(0, 1000)
+                    Enumerable.Range(0, 100)
                         .Select(i =>
-                            new ProducerData<string, Message>("test.topic", new[]
+                            new ProducerData<string, Message>(testTopic, new[]
                             {
                                 new Message(
                                     Encoding.UTF8.GetBytes(DateTime.UtcNow.Ticks.ToString()),
@@ -46,8 +47,8 @@ namespace Producer
                         );
                 var time = DateTime.UtcNow.Ticks;
                 kafkaProducer.Send(batch);
-                var taken = DateTime.UtcNow.Ticks - time;
-                Console.WriteLine($"{DateTime.Now.Ticks}:Sent in {taken}t");
+                var taken = (DateTime.UtcNow.Ticks - time) / 10000;
+                Console.WriteLine($"{DateTime.Now.Ticks}:Sent in {taken}ms");
             }
         }
     }
