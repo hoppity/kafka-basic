@@ -1,16 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using Kafka.Client.Cfg;
-using Kafka.Client.Messages;
-using Kafka.Client.Producers;
 using Metrics;
 using SimpleKafka;
-using Message = Kafka.Client.Messages.Message;
 
 namespace Producer
 {
@@ -35,7 +27,7 @@ namespace Producer
                 var batch =
                     Enumerable.Range(0, 100)
                         .Select(i =>
-                            new SimpleKafka.Message
+                            new Message
                             {
                                 Key = i.ToString(),
                                 Value = DateTime.UtcNow.Ticks.ToString()

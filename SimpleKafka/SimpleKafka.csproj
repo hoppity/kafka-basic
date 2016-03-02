@@ -53,6 +53,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="KafkaClient.cs" />
+    <Compile Include="KafkaConsumer.cs" />
+    <Compile Include="KafkaConsumerInstance.cs" />
+    <Compile Include="KafkaConsumerStream.cs" />
     <Compile Include="KafkaTopic.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
