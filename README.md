@@ -1,11 +1,42 @@
 # kafkanet-tests
-A few tests to measure the performance/stability of the microsoft/kafkanet library
+A few tests to measure the performance/stability of the microsoft/kafkanet library... and maybe provide a nicer API for writing Kafka clients.
 
-## Consumer
+## SimpleKafka Library
+
+This is a simplified API for using KafkaNET.
+
+Check out Consumer/Program.cs and Producer/Program.cs for actual usage...
+
+### High Level (Balanced) Consumer
+
+    using (var client = new KafkaClient(zkConnect))
+    {
+        var consumerGroup = client.Consumer(groupName);
+        using (var instance = consumerGroup.Join())
+        {
+            instance.Subscribe(topicName)
+                .Data(message =>
+                {
+                    // Do something with message.Key or message.Value...
+                })
+                .Start();
+            handler.WaitOne(); // Block the thread from disposing everything
+        }
+    }
+
+### High Level Producer
+
+    using (var client = new KafkaClient(zkConnect))
+    using (var topic = client.Topic(topicName))
+    {
+        topic.Send(batch);
+    }
+
+## Consumer Tests
 
 Fires up a High Level Consumer and listens for messages with timestamps.
 
-    .\Consumer.exe [broker_ip] [group_name] [topic_name]
+    .\Consumer.exe [zookeeper_connection] [group_name] [topic_name]
 
 ### Output
 
@@ -32,11 +63,11 @@ Fires up a High Level Consumer and listens for messages with timestamps.
                 99.9% <= 1030.00 ms
 
 
-## Producer
+## Producer Tests
 
 Firest up a Simple Producer and sends messages with timestamps.
 
-    .\Producer.exe [sookeeper_connect] [topic_name]
+    .\Producer.exe [zookeeper_connect] [topic_name]
 
 ### Output
 
