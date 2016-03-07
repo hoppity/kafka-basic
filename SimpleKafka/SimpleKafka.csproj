@@ -52,6 +52,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AutoOffsetReset.cs" />
+    <Compile Include="ConsumerOptions.cs" />
     <Compile Include="KafkaClient.cs" />
     <Compile Include="KafkaConsumer.cs" />
     <Compile Include="KafkaConsumerInstance.cs" />

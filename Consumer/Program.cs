@@ -12,7 +12,7 @@ namespace Consumer
             var zookeeperString = args.Length > 0 ? args[0] : "192.168.33.10:2181";
             var consumerGroupId = args.Length > 1 ? args[1] : "test.group";
             var testTopic = args.Length > 2 ? args[2] : "test.topic";
-            
+
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
@@ -26,7 +26,9 @@ namespace Consumer
             using (var client = new KafkaClient(zookeeperString))
             {
                 var consumerGroup = client.Consumer(consumerGroupId);
-                using (var instance = consumerGroup.Join())
+                var consumerOptions = new ConsumerOptions { AutoOffsetReset = AutoOffsetReset.Largest };
+
+                using (var instance = consumerGroup.Join(consumerOptions))
                 {
                     instance.Subscribe(testTopic)
                         .Data(message =>

@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Kafka.Client.Cfg;
+using System.Net.Configuration;
+using System.Security.Policy;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
 
@@ -17,19 +18,9 @@ namespace SimpleKafka
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
         private readonly ZookeeperConsumerConnector _balancedConsumer;
 
-        public KafkaConsumerInstance(string zkConnect, string groupName)
+        public KafkaConsumerInstance(string zkConnect, string groupName, ConsumerOptions options)
         {
-            var config = new ConsumerConfiguration
-            {
-                AutoCommit = false,
-                GroupId = groupName,
-                ZooKeeper = new ZooKeeperConfiguration(
-                    zkConnect,
-                    ZooKeeperConfiguration.DefaultSessionTimeout,
-                    ZooKeeperConfiguration.DefaultConnectionTimeout,
-                    ZooKeeperConfiguration.DefaultSyncTime
-                    )
-            };
+            var config = options.ToConfiguration(zkConnect, groupName);
 
             _balancedConsumer = new ZookeeperConsumerConnector(
                 config,
@@ -69,7 +60,7 @@ namespace SimpleKafka
 
         private void OnRebalance(object sender, EventArgs e)
         {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_REBALANCE");
+            Console.WriteLine($"{DateTime.Now.ToString("s")}: KF_REBALANCE");
         }
 
         public void Shutdown()
