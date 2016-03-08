@@ -48,9 +48,13 @@ Check out Consumer/Program.cs and Producer/Program.cs for actual usage...
 
 ## Consumer Tests
 
-Fires up a High Level Consumer and listens for messages with timestamps.
+Fires up a consumer and listens for messages with timestamps.
 
-    .\Consumer.exe [zookeeper_connection] [group_name] [topic_name]
+    # high-level (load balanced) consumer
+    .\Consumer.exe balanced -z [zookeeper_connection] -g [group_name] -t [topic_name]
+
+	# simple consumer
+    .\Consumer.exe simple -z [zookeeper_connection] -t [topic_name] -p [partition]
 
 ### Output
 
