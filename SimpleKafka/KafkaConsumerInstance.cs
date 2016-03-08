@@ -77,6 +77,7 @@ namespace SimpleKafka
             foreach (var stream in _streams)
             {
                 stream.Shutdown();
+                stream.Dispose();
             }
             _streams.Clear();
             _balancedConsumer.CommitOffsets();

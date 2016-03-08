@@ -1,5 +1,9 @@
 ﻿using System;
+using System.Collections;
+using System.Linq;
 using Kafka.Client.Cfg;
+using Kafka.Client.Helper;
+using Kafka.Client.Requests;
 using Kafka.Client.ZooKeeperIntegration;
 
 namespace SimpleKafka
@@ -26,7 +30,7 @@ namespace SimpleKafka
                 PartitionerClass = ProducerConfiguration.DefaultPartitioner
             };
             kafkaConfig.Verify();
-            
+
             _zkClient = new ZooKeeperClient(
                 zkConnect,
                 ZooKeeperConfiguration.DefaultSessionTimeout,
@@ -43,6 +47,11 @@ namespace SimpleKafka
         public IKafkaConsumer Consumer(string groupName)
         {
             return new KafkaConsumer(_zkConnect, groupName);
+        }
+
+        public IKafkaSimpleConsumer SimpleConsumer()
+        {
+            return new SimpleConsumer(_zkConnect);
         }
 
         public void Dispose()
