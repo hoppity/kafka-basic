@@ -60,7 +60,7 @@
     <Compile Include="KafkaTopic.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SimpleConsumer.cs" />
+    <Compile Include="KafkaSimpleConsumer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

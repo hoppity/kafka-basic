@@ -121,7 +121,14 @@ namespace SimpleKafka
         private void GetNextOffset()
         {
             long earliest, latest;
-            _manager.RefreshAndGetOffset(VersionId, ClientId, _correlationId++, _topicName, _partition, true, out earliest,
+            _manager.RefreshAndGetOffset(
+                VersionId,
+                ClientId,
+                _correlationId++,
+                _topicName,
+                _partition,
+                true,
+                out earliest,
                 out latest);
 
             switch (_nextOffset)

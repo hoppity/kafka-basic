@@ -51,7 +51,7 @@ namespace SimpleKafka
 
         public IKafkaSimpleConsumer SimpleConsumer()
         {
-            return new SimpleConsumer(_zkConnect);
+            return new KafkaSimpleConsumer(_zkConnect);
         }
 
         public void Dispose()

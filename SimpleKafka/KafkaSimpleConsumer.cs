@@ -8,12 +8,12 @@ namespace SimpleKafka
         IKafkaConsumerStream Subscribe(string topicName, int partition, long offset = -2);
     }
 
-    public class SimpleConsumer : IKafkaSimpleConsumer
+    public class KafkaSimpleConsumer : IKafkaSimpleConsumer
     {
         private readonly string _zkConnect;
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
 
-        public SimpleConsumer(string zkConnect)
+        public KafkaSimpleConsumer(string zkConnect)
         {
             _zkConnect = zkConnect;
         }
