@@ -1,0 +1,13 @@
+﻿<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Kafka.Basic</id>
+    <version>0.0.1</version>
+    <authors>Ducas Francis</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Native .NET client library for Kafka providing a basic API over microsoft/kafkanet.</description>
+    <dependencies>
+      <dependency id="KafkaNet" version="0.0.1-alpha00003" />
+    </dependencies>
+  </metadata>
+</package>

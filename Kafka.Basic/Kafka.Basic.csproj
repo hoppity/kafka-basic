@@ -63,6 +63,7 @@
     <Compile Include="KafkaSimpleConsumer.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Kafka.Basic.nuspec" />
     <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
