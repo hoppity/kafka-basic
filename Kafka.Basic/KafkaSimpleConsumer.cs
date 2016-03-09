@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SimpleKafka
+namespace Kafka.Basic
 {
     public interface IKafkaSimpleConsumer : IDisposable
     {

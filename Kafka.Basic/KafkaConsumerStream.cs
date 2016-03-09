@@ -3,7 +3,7 @@ using System.Text;
 using System.Threading;
 using Kafka.Client.Consumers;
 
-namespace SimpleKafka
+namespace Kafka.Basic
 {
     public interface IKafkaConsumerStream : IDisposable
     {

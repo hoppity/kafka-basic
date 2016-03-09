@@ -9,7 +9,7 @@ using Kafka.Client.Helper;
 using Kafka.Client.Messages;
 using Kafka.Client.Utils;
 
-namespace SimpleKafka
+namespace Kafka.Basic
 {
     public class KafkaSimpleConsumerStream : IKafkaConsumerStream
     {
