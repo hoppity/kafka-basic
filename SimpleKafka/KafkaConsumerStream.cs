@@ -5,7 +5,7 @@ using Kafka.Client.Consumers;
 
 namespace SimpleKafka
 {
-    public interface IKafkaConsumerStream
+    public interface IKafkaConsumerStream : IDisposable
     {
         IKafkaConsumerStream Data(Action<Message> action);
         IKafkaConsumerStream Error(Action<Exception> action);
@@ -84,6 +84,17 @@ namespace SimpleKafka
         {
             _running = false;
             _tokenSource.Cancel();
+        }
+
+        public void Dispose()
+        {
+            if (_running) Shutdown();
+
+            _tokenSource?.Dispose();
+
+            _dataSubscriber = null;
+            _errorSubscriber = null;
+            _closeSubscriber = null;
         }
     }
 }

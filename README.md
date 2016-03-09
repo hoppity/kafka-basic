@@ -17,11 +17,25 @@ Check out Consumer/Program.cs and Producer/Program.cs for actual usage...
             instance.Subscribe(topicName)
                 .Data(message =>
                 {
-                    // Do something with message.Key or message.Value...
+                    // Do something with message...
                 })
                 .Start();
             handler.WaitOne(); // Block the thread from disposing everything
         }
+    }
+
+### Simple Consumer
+
+    using (var client = new KafkaClient(zkConnect))
+    using (var consumer = client.SimpleConsumer())
+    {
+        consumer.Subscribe(topicName, partition, offset)
+            .Data(message =>
+            {
+                // Do something with message...
+            })
+            .Start();
+        handler.WaitOne(); // Block the thread from disposing everything
     }
 
 ### High Level Producer
@@ -34,9 +48,13 @@ Check out Consumer/Program.cs and Producer/Program.cs for actual usage...
 
 ## Consumer Tests
 
-Fires up a High Level Consumer and listens for messages with timestamps.
+Fires up a consumer and listens for messages with timestamps.
 
-    .\Consumer.exe [zookeeper_connection] [group_name] [topic_name]
+    # high-level (load balanced) consumer
+    .\Consumer.exe balanced -z [zookeeper_connection] -g [group_name] -t [topic_name]
+
+	# simple consumer
+    .\Consumer.exe simple -z [zookeeper_connection] -t [topic_name] -p [partition]
 
 ### Output
 

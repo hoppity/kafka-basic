@@ -11,7 +11,7 @@ namespace Producer
         static void Main(string[] args)
         {
             var zkConnect = args.Length > 0 ? args[0] : "192.168.33.10:2181";
-            var testTopic = args.Length > 0 ? args[1] : "test.topic";
+            var testTopic = args.Length > 1 ? args[1] : "test.topic";
 
             var timer = Metric.Timer("Sent", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
