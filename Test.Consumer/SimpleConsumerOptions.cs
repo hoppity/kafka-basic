@@ -11,7 +11,7 @@ namespace Consumer
         public string Topic { get; set; }
         [Option('p', "partition", Required = true, HelpText = "The identifier of the partition.")]
         public int Partition { get; set; }
-        [Option('o', "offset", HelpText = "The starting offset (-2 = earliest, -1 = latest).", Default = SimpleKafka.Offset.Latest)]
+        [Option('o', "offset", HelpText = "The starting offset (-2 = earliest, -1 = latest).", Default = Kafka.Basic.Offset.Latest)]
         public long Offset { get; set; }
     }
 }

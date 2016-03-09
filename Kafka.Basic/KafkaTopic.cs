@@ -7,7 +7,7 @@ using Kafka.Client.Utils;
 using Kafka.Client.ZooKeeperIntegration;
 using KafkaMessage = Kafka.Client.Messages.Message;
 
-namespace SimpleKafka
+namespace Kafka.Basic
 {
     public interface IKafkaTopic : IDisposable
     {

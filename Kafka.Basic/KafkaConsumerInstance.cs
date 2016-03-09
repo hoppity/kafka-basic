@@ -5,7 +5,7 @@ using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
 
-namespace SimpleKafka
+namespace Kafka.Basic
 {
     public interface IKafkaConsumerInstance : IDisposable
     {

@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections;
-using System.Linq;
 using Kafka.Client.Cfg;
-using Kafka.Client.Helper;
-using Kafka.Client.Requests;
 using Kafka.Client.ZooKeeperIntegration;
 
-namespace SimpleKafka
+namespace Kafka.Basic
 {
     public interface IKafkaClient : IDisposable
     {

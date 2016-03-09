@@ -1,4 +1,4 @@
-﻿namespace SimpleKafka
+﻿namespace Kafka.Basic
 {
     public class Message
     {
