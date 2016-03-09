@@ -1,11 +1,11 @@
-# kafkanet-tests
-A few tests to measure the performance/stability of the microsoft/kafkanet library... and maybe provide a nicer API for writing Kafka clients.
+# kafka-basic
+A basic .NET API over the top of [microsoft/kafkanet](https://github.com/microsoft/kafkanet) that lets you get up and going with Kafka quickly and easily.
 
-## SimpleKafka Library
+## Kafka.Basic Library
 
 This is a simplified API for using KafkaNET.
 
-Check out Consumer/Program.cs and Producer/Program.cs for actual usage...
+Check out Test.Consumer/HighLevelConsumer.cs, Test.Consumer/SimpleConsumer.cs and Producer/Program.cs for actual usage...
 
 ### High Level (Balanced) Consumer
 
