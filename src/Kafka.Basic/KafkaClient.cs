@@ -8,7 +8,6 @@ namespace Kafka.Basic
     {
         IKafkaTopic Topic(string name);
         IKafkaConsumer Consumer(string groupName);
-        void Dispose();
     }
 
     public class KafkaClient : IKafkaClient

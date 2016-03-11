@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
@@ -10,6 +11,8 @@ namespace Kafka.Basic
     public interface IKafkaConsumerInstance : IDisposable
     {
         KafkaConsumerStream Subscribe(string topicName);
+        Task Commit();
+        Task Shutdown();
     }
 
     public class KafkaConsumerInstance : IKafkaConsumerInstance
@@ -17,9 +20,26 @@ namespace Kafka.Basic
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
         private readonly ZookeeperConsumerConnector _balancedConsumer;
 
+        public KafkaConsumerInstance(ConsumerConfiguration config)
+        {
+            _balancedConsumer = CreateZookeeperConnector(config);
+        }
+
+
+        public KafkaConsumerInstance(ZookeeperConsumerConnector connector)
+        {
+            _balancedConsumer = connector;
+        }
+
         public KafkaConsumerInstance(string zkConnect, string groupName)
         {
-            var config = new ConsumerConfiguration
+            _balancedConsumer = CreateZookeeperConnector(zkConnect, groupName);
+        }
+
+
+        private ConsumerConfiguration CreateConsumerConfiguration(string zkConnect, string groupName)
+        {
+            return new ConsumerConfiguration
             {
                 AutoCommit = false,
                 GroupId = groupName,
@@ -30,14 +50,28 @@ namespace Kafka.Basic
                     ZooKeeperConfiguration.DefaultSyncTime
                     )
             };
+        }
 
-            _balancedConsumer = new ZookeeperConsumerConnector(
-                config,
+
+        private ZookeeperConsumerConnector CreateZookeeperConnector(ConsumerConfiguration config)
+        {
+            return new ZookeeperConsumerConnector(config, true,
+                OnRebalance,
+                OnZkDisconnect,
+                OnZkExpired
+            );
+        }
+
+
+        private ZookeeperConsumerConnector CreateZookeeperConnector(string zkConnect, string groupName)
+        {
+            return new ZookeeperConsumerConnector(
+                CreateConsumerConfiguration(zkConnect, groupName),
                 true,
                 OnRebalance,
                 OnZkDisconnect,
                 OnZkExpired
-                );
+            );
         }
 
         public KafkaConsumerStream Subscribe(string topicName)
@@ -48,7 +82,7 @@ namespace Kafka.Basic
                     {topicName, 1}
                 },
                 new DefaultDecoder()
-                );
+            );
 
             var stream = streams[topicName][0];
 
@@ -72,16 +106,24 @@ namespace Kafka.Basic
             Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_REBALANCE");
         }
 
-        public void Shutdown()
+        public Task Shutdown()
         {
-            foreach (var stream in _streams)
+            return Task.Run(() =>
             {
-                stream.Shutdown();
-                stream.Dispose();
-            }
-            _streams.Clear();
-            _balancedConsumer.CommitOffsets();
-            _balancedConsumer.ReleaseAllPartitionOwnerships();
+                foreach (var stream in _streams)
+                {
+                    CloseStream(stream);
+                }
+                _streams.Clear();
+                _balancedConsumer.CommitOffsets();
+                _balancedConsumer.ReleaseAllPartitionOwnerships();
+            });
+        }
+
+        private void CloseStream(IKafkaConsumerStream stream)
+        {
+            stream.Shutdown();
+            stream.Dispose();
         }
 
         public void Dispose()
@@ -92,5 +134,11 @@ namespace Kafka.Basic
             }
             _balancedConsumer.Dispose();
         }
+
+        public Task Commit()
+        {
+            return Task.Run(() => _balancedConsumer.CommitOffsets());
+        }
+
     }
 }
