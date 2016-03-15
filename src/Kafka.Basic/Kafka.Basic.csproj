@@ -36,7 +36,7 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="KafkaNET.Library, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\KafkaNet.0.0.1-alpha00003\lib\net45\KafkaNET.Library.dll</HintPath>
+      <HintPath>..\..\packages\KafkaNet.0.0.1-alpha00006\lib\net45\KafkaNET.Library.dll</HintPath>
       <Private>True</Private>
     </Reference>
     <Reference Include="log4net, Version=1.2.10.0, Culture=neutral, PublicKeyToken=1b44e1d426115821, processorArchitecture=MSIL">

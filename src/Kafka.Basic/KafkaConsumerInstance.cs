@@ -18,7 +18,7 @@ namespace Kafka.Basic
     public class KafkaConsumerInstance : IKafkaConsumerInstance
     {
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
-        private readonly ZookeeperConsumerConnector _balancedConsumer;
+        private readonly IZookeeperConsumerConnector _balancedConsumer;
 
         public KafkaConsumerInstance(ConsumerConfiguration config)
         {
@@ -26,7 +26,7 @@ namespace Kafka.Basic
         }
 
 
-        public KafkaConsumerInstance(ZookeeperConsumerConnector connector)
+        public KafkaConsumerInstance(IZookeeperConsumerConnector connector)
         {
             _balancedConsumer = connector;
         }

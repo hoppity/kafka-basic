@@ -1,23 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Kafka.Client.Consumers;
+﻿using Kafka.Client.Consumers;
 using Moq;
 using Ploeh.AutoFixture;
 using Ploeh.AutoFixture.Xunit2;
+using Ploeh.AutoFixture.AutoMoq;
 using Xunit;
-using Kafka.Client.Cfg;
 
 namespace Kafka.Basic.Test
 {
     public class KafkaConsumerInstance
     {
-        private Fixture _fixture;
+        private IFixture _fixture;
         private IKafkaConsumerInstance _consumerInstance;
-        private ZookeeperConsumerConnector _zkConnector;
+        private IZookeeperConsumerConnector _zkConnector;
+        private Mock<IZookeeperConsumerConnector> _zkConnectorMock;
 
         public KafkaConsumerInstance()
         {
@@ -33,19 +28,20 @@ namespace Kafka.Basic.Test
 
         private void CreateFixture()
         {
-            _fixture = new Fixture();
+            _fixture = new Fixture().Customize(new AutoMoqCustomization());
         }
 
 
         private void CreateZookeeperConnector()
         {
-            _zkConnector = _fixture.Create<ZookeeperConsumerConnector>();
+            _zkConnectorMock = _fixture.Create<Mock<IZookeeperConsumerConnector>>();
         }
+
 
         private void CreateConsumerInstance()
         {
-            //CreateZookeeperConnector();
-            _consumerInstance = new Basic.KafkaConsumerInstance(_zkConnector);
+            CreateZookeeperConnector();
+            _consumerInstance = new Basic.KafkaConsumerInstance(_zkConnectorMock.Object);
         }
 
 
@@ -55,6 +51,40 @@ namespace Kafka.Basic.Test
             var stream = _consumerInstance.Subscribe(topicName);
 
             Assert.NotNull(stream);
+        }
+
+
+        [Theory, AutoData]
+        public async void Commit()
+        {
+            await _consumerInstance.Commit();
+            _zkConnectorMock
+                .Verify(mock => mock.CommitOffsets(),
+                Times.AtLeastOnce());
+        }
+
+
+        [Theory, AutoData]
+        public async void ShutDown()
+        {
+            await _consumerInstance.Shutdown();
+            _zkConnectorMock
+                .Verify(mock => mock.CommitOffsets(), 
+                Times.Once());
+
+            _zkConnectorMock
+                .Verify(mock => mock.ReleaseAllPartitionOwnerships(),
+                Times.Once());
+        }
+
+
+        [Theory, AutoData]
+        public void Dispose()
+        {
+            _consumerInstance.Dispose();
+            _zkConnectorMock
+                .Verify(mock => mock.Dispose(),
+                Times.Once());
         }
     }
 }
