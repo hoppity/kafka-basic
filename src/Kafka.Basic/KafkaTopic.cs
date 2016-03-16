@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using Kafka.Client.Cfg;
+using Kafka.Client.Messages;
 using Kafka.Client.Producers;
 using Kafka.Client.Utils;
 using Kafka.Client.ZooKeeperIntegration;
@@ -39,12 +40,7 @@ namespace Kafka.Basic
         public void Send(params Message[] messages)
         {
             _producer.Send(
-                messages
-                    .Select(m => new ProducerData<string, KafkaMessage>(
-                        _name,
-                        m.Key,
-                        new KafkaMessage(Encoding.UTF8.GetBytes(m.Value)))
-                    )
+                messages.Select(m => m.AsProducerData(_name))
                 );
         }
 

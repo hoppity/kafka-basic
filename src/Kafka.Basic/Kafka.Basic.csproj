@@ -53,6 +53,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Compression.cs" />
     <Compile Include="KafkaClient.cs" />
     <Compile Include="KafkaConsumer.cs" />
     <Compile Include="KafkaConsumerInstance.cs" />
@@ -60,6 +61,7 @@
     <Compile Include="KafkaSimpleConsumerStream.cs" />
     <Compile Include="KafkaTopic.cs" />
     <Compile Include="Message.cs" />
+    <Compile Include="MessageExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="KafkaSimpleConsumer.cs" />
   </ItemGroup>
