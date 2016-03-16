@@ -10,10 +10,10 @@ namespace Kafka.Basic
 
     public class KafkaSimpleConsumer : IKafkaSimpleConsumer
     {
-        private readonly string _zkConnect;
+        private readonly IZookeeperConnection _zkConnect;
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
 
-        public KafkaSimpleConsumer(string zkConnect)
+        public KafkaSimpleConsumer(IZookeeperConnection zkConnect)
         {
             _zkConnect = zkConnect;
         }

@@ -31,15 +31,11 @@ namespace Kafka.Basic
         private Action<Exception> _errorSubscriber;
         private Action _closeSubscriber;
 
-        public KafkaSimpleConsumerStream(string zkConnect, string topicName, int partition, long offset)
+        public KafkaSimpleConsumerStream(IZookeeperConnection zkConnect, string topicName, int partition, long offset)
         {
             _topicName = topicName;
             _partition = partition;
-            _manager = new KafkaSimpleManager<string, Message>(
-                new KafkaSimpleManagerConfiguration
-                {
-                    Zookeeper = zkConnect
-                });
+            _manager = zkConnect.CreateSimpleManager();
 
             _manager.RefreshMetadata(0, ClientId, _correlationId++, _topicName, true);
 

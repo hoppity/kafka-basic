@@ -15,11 +15,13 @@ namespace Kafka.Basic
     {
         private readonly string _name;
         private readonly IProducer<string, KafkaMessage> _producer;
+        private IZookeeperClient _zkClient;
 
-        public KafkaTopic(IZookeeperClient zkClient, string name)
+        public KafkaTopic(IZookeeperConnection zkConnect, string name)
         {
             _name = name;
-            _producer = zkClient.CreateProducer<string, KafkaMessage>();
+            _zkClient = zkConnect.CreateClient();
+            _producer = _zkClient.CreateProducer<string, KafkaMessage>();
         }
 
         public void Send(params Message[] messages)
@@ -32,6 +34,7 @@ namespace Kafka.Basic
         public void Dispose()
         {
             _producer.Dispose();
+            _zkClient.Dispose();
         }
     }
 }

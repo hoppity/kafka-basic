@@ -31,43 +31,20 @@ namespace Kafka.Basic
             _balancedConsumer = connector;
         }
 
-        public KafkaConsumerInstance(string zkConnect, string groupName)
+        public KafkaConsumerInstance(IZookeeperConnection zkConnect, string groupName)
         {
-            _balancedConsumer = CreateZookeeperConnector(zkConnect, groupName);
+            _balancedConsumer = zkConnect.CreateConsumerConnector(new ConsumerOptions { GroupName = groupName });
         }
 
-
-        private ConsumerConfiguration CreateConsumerConfiguration(string zkConnect, string groupName)
+        public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
-            return new ConsumerConfiguration
-            {
-                AutoCommit = false,
-                GroupId = groupName,
-                ZooKeeper = new ZooKeeperConfiguration(
-                    zkConnect,
-                    ZooKeeperConfiguration.DefaultSessionTimeout,
-                    ZooKeeperConfiguration.DefaultConnectionTimeout,
-                    ZooKeeperConfiguration.DefaultSyncTime
-                    )
-            };
+            _balancedConsumer = zkConnect.CreateConsumerConnector(options);
         }
 
 
         private ZookeeperConsumerConnector CreateZookeeperConnector(ConsumerConfiguration config)
         {
             return new ZookeeperConsumerConnector(config, true,
-                OnRebalance,
-                OnZkDisconnect,
-                OnZkExpired
-            );
-        }
-
-
-        private ZookeeperConsumerConnector CreateZookeeperConnector(string zkConnect, string groupName)
-        {
-            return new ZookeeperConsumerConnector(
-                CreateConsumerConfiguration(zkConnect, groupName),
-                true,
                 OnRebalance,
                 OnZkDisconnect,
                 OnZkExpired

@@ -7,10 +7,10 @@
 
     public class KafkaConsumer : IKafkaConsumer
     {
-        private readonly string _zkConnect;
+        private readonly IZookeeperConnection _zkConnect;
         private readonly string _groupName;
 
-        public KafkaConsumer(string zkConnect, string groupName)
+        public KafkaConsumer(IZookeeperConnection zkConnect, string groupName)
         {
             _zkConnect = zkConnect;
             _groupName = groupName;
