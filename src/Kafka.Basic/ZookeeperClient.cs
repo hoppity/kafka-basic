@@ -12,6 +12,7 @@ namespace Kafka.Basic
     public interface IZookeeperClient : IDisposable
     {
         IEnumerable<Broker> GetAllBrokers();
+        IProducer<TKey, TMessage> CreateProducer<TKey, TMessage>();
     }
 
     public class ZookeeperClient : IZookeeperClient
@@ -31,6 +32,21 @@ namespace Kafka.Basic
         public IEnumerable<Broker> GetAllBrokers()
         {
             return ZkUtils.GetAllBrokersInCluster(_client);
+        }
+
+        public IProducer<TKey, TMessage> CreateProducer<TKey, TMessage>()
+        {
+            var config = new ProducerConfiguration(
+                GetAllBrokers()
+                    .Select(b => new BrokerConfiguration
+                    {
+                        BrokerId = b.Id,
+                        Host = b.Host,
+                        Port = b.Port
+                    }).ToList()
+                );
+
+            return new Producer<TKey, TMessage>(config);
         }
 
         public void Dispose()
