@@ -20,10 +20,10 @@ namespace Kafka.Basic
         private readonly string _name;
         private readonly Producer<string, KafkaMessage> _producer;
 
-        public KafkaTopic(IZooKeeperClient zkClient, string name)
+        public KafkaTopic(IZookeeperClient zkClient, string name)
         {
             _name = name;
-            var brokers = ZkUtils.GetAllBrokersInCluster(zkClient);
+            var brokers = zkClient.GetAllBrokers();
             _producer = new Producer<string, KafkaMessage>(
                 new ProducerConfiguration(
                     brokers

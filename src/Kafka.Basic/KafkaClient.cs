@@ -1,6 +1,5 @@
 ﻿using System;
 using Kafka.Client.Cfg;
-using Kafka.Client.ZooKeeperIntegration;
 
 namespace Kafka.Basic
 {
@@ -13,7 +12,7 @@ namespace Kafka.Basic
     public class KafkaClient : IKafkaClient
     {
         private readonly string _zkConnect;
-        private readonly ZooKeeperClient _zkClient;
+        private readonly IZookeeperClient _zkClient;
 
         public KafkaClient(string zkConnect)
         {
@@ -26,12 +25,7 @@ namespace Kafka.Basic
             };
             kafkaConfig.Verify();
 
-            _zkClient = new ZooKeeperClient(
-                zkConnect,
-                ZooKeeperConfiguration.DefaultSessionTimeout,
-                ZooKeeperStringSerializer.Serializer
-                );
-            _zkClient.Connect();
+            _zkClient = new ZookeeperClient(_zkConnect);
         }
 
         public IKafkaTopic Topic(string name)

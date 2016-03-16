@@ -64,6 +64,7 @@
     <Compile Include="MessageExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="KafkaSimpleConsumer.cs" />
+    <Compile Include="ZookeeperClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Kafka.Basic.nuspec" />
