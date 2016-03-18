@@ -15,19 +15,17 @@ namespace Consumer
             
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
-
-            var handler = new AutoResetEvent(false);
-            Console.CancelKeyPress += (sender, eventArgs) =>
-            {
-                eventArgs.Cancel = true;
-                handler.Set();
-            };
-
+            
             using (var client = new KafkaClient(zookeeperString))
             {
                 var consumerGroup = client.Consumer(consumerGroupId);
                 using (var instance = consumerGroup.Join())
                 {
+                    Console.CancelKeyPress += (sender, eventArgs) =>
+                    {
+                        eventArgs.Cancel = true;
+                        instance.Shutdown();
+                    };
                     instance.Subscribe(testTopic)
                         .Data(message =>
                         {
@@ -36,8 +34,8 @@ namespace Consumer
                             var diff = (time - value) / 10000;
                             timer.Record(diff, TimeUnit.Milliseconds);
                         })
-                        .Start();
-                    handler.WaitOne();
+                        .Start()
+                        .Block();
                 }
             }
 
