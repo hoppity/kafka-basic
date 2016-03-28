@@ -44,7 +44,9 @@ namespace Kafka.Basic
                     ZooKeeperConfiguration.DefaultSessionTimeout,
                     ZooKeeperConfiguration.DefaultConnectionTimeout,
                     ZooKeeperConfiguration.DefaultSyncTime
-                    )
+                    ),
+                BackOffIncrement = 0,
+                MaxFetchWaitMs = 1000
             };
             return new ZookeeperConsumerConnector(config, true);
         }
