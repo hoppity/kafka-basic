@@ -12,7 +12,7 @@ namespace Consumer
             var zookeeperString = opts.ZkConnect;
             var consumerGroupId = opts.Group;
             var testTopic = opts.Topic;
-
+            
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
