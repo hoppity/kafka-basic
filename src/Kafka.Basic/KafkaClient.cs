@@ -1,6 +1,4 @@
 ﻿using System;
-using Kafka.Client.Cfg;
-using Kafka.Client.ZooKeeperIntegration;
 
 namespace Kafka.Basic
 {
@@ -12,46 +10,28 @@ namespace Kafka.Basic
 
     public class KafkaClient : IKafkaClient
     {
-        private readonly string _zkConnect;
-        private readonly ZooKeeperClient _zkClient;
+        private readonly IZookeeperConnection _zkConnection;
 
         public KafkaClient(string zkConnect)
         {
-            _zkConnect = zkConnect;
-            var kafkaConfig = new KafkaSimpleManagerConfiguration()
-            {
-                Zookeeper = zkConnect,
-                MaxMessageSize = SyncProducerConfiguration.DefaultMaxMessageSize,
-                PartitionerClass = ProducerConfiguration.DefaultPartitioner
-            };
-            kafkaConfig.Verify();
-
-            _zkClient = new ZooKeeperClient(
-                zkConnect,
-                ZooKeeperConfiguration.DefaultSessionTimeout,
-                ZooKeeperStringSerializer.Serializer
-                );
-            _zkClient.Connect();
+            _zkConnection = new ZookeeperConnection(zkConnect);
         }
 
         public IKafkaTopic Topic(string name)
         {
-            return new KafkaTopic(_zkClient, name);
+            return new KafkaTopic(_zkConnection, name);
         }
 
         public IKafkaConsumer Consumer(string groupName)
         {
-            return new KafkaConsumer(_zkConnect, groupName);
+            return new KafkaConsumer(_zkConnection, groupName);
         }
 
         public IKafkaSimpleConsumer SimpleConsumer()
         {
-            return new KafkaSimpleConsumer(_zkConnect);
+            return new KafkaSimpleConsumer(_zkConnection);
         }
 
-        public void Dispose()
-        {
-            _zkClient.Dispose();
-        }
+        public void Dispose() { }
     }
 }

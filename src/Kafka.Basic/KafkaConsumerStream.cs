@@ -16,7 +16,7 @@ namespace Kafka.Basic
 
     public class KafkaConsumerStream : IKafkaConsumerStream
     {
-        private readonly KafkaMessageStream<Client.Messages.Message> _stream;
+        private readonly IKafkaMessageStream<Client.Messages.Message> _stream;
         private readonly CancellationTokenSource _tokenSource;
         private readonly Thread _thread;
         private bool _running;
@@ -24,10 +24,10 @@ namespace Kafka.Basic
         private Action<Exception> _errorSubscriber;
         private Action _closeSubscriber;
 
-        public KafkaConsumerStream(KafkaMessageStream<Client.Messages.Message> stream)
+        public KafkaConsumerStream(IKafkaMessageStream<Client.Messages.Message> stream)
         {
             _tokenSource = new CancellationTokenSource();
-            _stream = (KafkaMessageStream<Client.Messages.Message>)stream.GetCancellable(_tokenSource.Token);
+            _stream = stream.GetCancellable(_tokenSource.Token);
             _thread = new Thread(RunConsumer);
         }
 

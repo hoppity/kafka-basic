@@ -1,11 +1,7 @@
 ﻿using System;
 using System.Linq;
-using System.Text;
 using Kafka.Client.Cfg;
-using Kafka.Client.Messages;
 using Kafka.Client.Producers;
-using Kafka.Client.Utils;
-using Kafka.Client.ZooKeeperIntegration;
 using KafkaMessage = Kafka.Client.Messages.Message;
 
 namespace Kafka.Basic
@@ -18,23 +14,14 @@ namespace Kafka.Basic
     public class KafkaTopic : IKafkaTopic
     {
         private readonly string _name;
-        private readonly Producer<string, KafkaMessage> _producer;
+        private readonly IProducer<string, KafkaMessage> _producer;
+        private IZookeeperClient _zkClient;
 
-        public KafkaTopic(IZooKeeperClient zkClient, string name)
+        public KafkaTopic(IZookeeperConnection zkConnect, string name)
         {
             _name = name;
-            var brokers = ZkUtils.GetAllBrokersInCluster(zkClient);
-            _producer = new Producer<string, KafkaMessage>(
-                new ProducerConfiguration(
-                    brokers
-                        .Select(b => new BrokerConfiguration
-                        {
-                            BrokerId = b.Id,
-                            Host = b.Host,
-                            Port = b.Port
-                        }).ToList()
-                    )
-                );
+            _zkClient = zkConnect.CreateClient();
+            _producer = _zkClient.CreateProducer<string, KafkaMessage>();
         }
 
         public void Send(params Message[] messages)
@@ -47,6 +34,7 @@ namespace Kafka.Basic
         public void Dispose()
         {
             _producer.Dispose();
+            _zkClient.Dispose();
         }
     }
 }
