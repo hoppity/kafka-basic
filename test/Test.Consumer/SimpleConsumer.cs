@@ -13,7 +13,7 @@ namespace Consumer
             var testTopic = opts.Topic;
             var partition = opts.Partition;
             var offset = opts.Offset;
-
+            
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
@@ -24,7 +24,6 @@ namespace Consumer
                 handler.Set();
             };
 
-            Thread.Sleep(5000);
             using (var client = new KafkaClient(zookeeperString))
             using (var consumer = client.SimpleConsumer())
             using (var stream = consumer.Subscribe(testTopic, partition, offset))

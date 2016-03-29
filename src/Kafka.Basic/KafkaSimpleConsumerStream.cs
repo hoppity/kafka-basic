@@ -79,7 +79,6 @@ namespace Kafka.Basic
                 IEnumerable<MessageAndOffset> messageAndOffsets = null;
                 try
                 {
-                    GetNextOffset();
                     messageAndOffsets = Fetch();
                 }
                 catch (Exception ex)
@@ -161,44 +160,41 @@ namespace Kafka.Basic
 
                     if (response == null)
                     {
-                        throw new KeyNotFoundException(
-                            string.Format("FetchRequest returned null response,fetchOffset={0},leader={1},topic={2},partition={3}",
-                            _nextOffset, _consumer.Config.Broker, _topicName, _partition));
+                        throw new KeyNotFoundException($"FetchRequest returned null response,fetchOffset={_nextOffset},leader={_consumer.Config.Broker},topic={_topicName},partition={_partition}");
                     }
 
                     var partitionData = response.PartitionData(_topicName, _partition);
                     if (partitionData == null)
                     {
-                        throw new KeyNotFoundException(
-                            $"PartitionData is null,fetchOffset={_nextOffset},leader={_consumer.Config.Broker},topic={_topicName},partition={_partition}"
-                            );
+                        throw new KeyNotFoundException($"PartitionData is null,fetchOffset={_nextOffset},leader={_consumer.Config.Broker},topic={_topicName},partition={_partition}");
                     }
 
                     if (partitionData.Error == ErrorMapping.OffsetOutOfRangeCode)
                     {
                         var error = $"PullMessage OffsetOutOfRangeCode,change to Latest,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        GetNextOffset();
                         return null;
                     }
 
                     if (partitionData.Error != ErrorMapping.NoError)
                     {
-                        var error =
-                            $"PullMessage ErrorCode={partitionData.Error},topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        var error = $"PullMessage ErrorCode={partitionData.Error},topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        GetNextOffset();
                         return null;
                     }
 
                     success = true;
                     var messages = partitionData.GetMessageAndOffsets();
                     if (messages == null || !messages.Any()) return messages;
+
+                    var count = messages.Count;
+
+                    var lastOffset = messages.Last().MessageOffset;
+
+                    if (count + _nextOffset != lastOffset + 1)
                     {
-                        var count = messages.Count;
-
-                        var lastOffset = messages.Last().MessageOffset;
-
-                        if ((count + _nextOffset) != (lastOffset + 1))
-                        {
-                            var error = $"PullMessage offset payloadCount out-of-sync,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},payloadCount={count},FetchOffset={_nextOffset},lastOffset={lastOffset},retryCount={retryCount},maxRetry={maxRetry}";
-                        }
+                        var error = $"PullMessage offset payloadCount out-of-sync,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},payloadCount={count},FetchOffset={_nextOffset},lastOffset={lastOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        GetNextOffset();
                     }
 
                     return messages;
@@ -209,6 +205,7 @@ namespace Kafka.Basic
                     {
                         throw;
                     }
+                    GetNextOffset();
                 }
                 finally
                 {
