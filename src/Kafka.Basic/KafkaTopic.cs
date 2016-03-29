@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Linq;
-using Kafka.Client.Cfg;
 using Kafka.Client.Producers;
 using KafkaMessage = Kafka.Client.Messages.Message;
 
@@ -15,7 +14,7 @@ namespace Kafka.Basic
     {
         private readonly string _name;
         private readonly IProducer<string, KafkaMessage> _producer;
-        private IZookeeperClient _zkClient;
+        private readonly IZookeeperClient _zkClient;
 
         public KafkaTopic(IZookeeperConnection zkConnect, string name)
         {

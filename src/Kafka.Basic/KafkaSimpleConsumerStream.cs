@@ -191,7 +191,7 @@ namespace Kafka.Basic
 
                     var lastOffset = messages.Last().MessageOffset;
 
-                    if ((count + _nextOffset) != (lastOffset + 1))
+                    if (count + _nextOffset != lastOffset + 1)
                     {
                         var error = $"PullMessage offset payloadCount out-of-sync,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},payloadCount={count},FetchOffset={_nextOffset},lastOffset={lastOffset},retryCount={retryCount},maxRetry={maxRetry}";
                         GetNextOffset();
