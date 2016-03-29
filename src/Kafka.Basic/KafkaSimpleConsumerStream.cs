@@ -26,6 +26,7 @@ namespace Kafka.Basic
         private KafkaSimpleManager<string, Message> _manager;
         private long _nextOffset;
         private Consumer _consumer;
+        private AutoResetEvent _handler;
 
         private Action<Message> _dataSubscriber;
         private Action<Exception> _errorSubscriber;
@@ -64,10 +65,17 @@ namespace Kafka.Basic
             return this;
         }
 
-        public void Start()
+        public IKafkaConsumerStream Start()
         {
+            _handler = new AutoResetEvent(false);
             _running = true;
             _thread.Start();
+            return this;
+        }
+
+        public void Block()
+        {
+            _handler.WaitOne();
         }
 
         private void RunConsumer()
@@ -218,6 +226,7 @@ namespace Kafka.Basic
         public void Shutdown()
         {
             _running = false;
+            _handler.Set();
         }
 
         public void Dispose()

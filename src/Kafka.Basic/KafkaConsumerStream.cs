@@ -10,7 +10,8 @@ namespace Kafka.Basic
         IKafkaConsumerStream Data(Action<Message> action);
         IKafkaConsumerStream Error(Action<Exception> action);
         IKafkaConsumerStream Close(Action action);
-        void Start();
+        IKafkaConsumerStream Start();
+        void Block();
         void Shutdown();
     }
 
@@ -20,6 +21,8 @@ namespace Kafka.Basic
         private readonly CancellationTokenSource _tokenSource;
         private readonly Thread _thread;
         private bool _running;
+        private AutoResetEvent _handler;
+
         private Action<Message> _dataSubscriber;
         private Action<Exception> _errorSubscriber;
         private Action _closeSubscriber;
@@ -49,10 +52,17 @@ namespace Kafka.Basic
             return this;
         }
 
-        public void Start()
+        public IKafkaConsumerStream Start()
         {
+            _handler = new AutoResetEvent(false);
             _running = true;
             _thread.Start();
+            return this;
+        }
+
+        public void Block()
+        {
+            _handler.WaitOne();
         }
 
         private void RunConsumer()
@@ -84,6 +94,7 @@ namespace Kafka.Basic
         {
             _running = false;
             _tokenSource.Cancel();
+            _handler.Set();
         }
 
         public void Dispose()

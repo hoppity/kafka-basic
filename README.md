@@ -19,8 +19,8 @@ Check out Test.Consumer/HighLevelConsumer.cs, Test.Consumer/SimpleConsumer.cs an
                 {
                     // Do something with message...
                 })
-                .Start();
-            handler.WaitOne(); // Block the thread from disposing everything
+                .Start()
+                .Block(); // Block the thread from disposing everything
         }
     }
 
@@ -34,8 +34,8 @@ Check out Test.Consumer/HighLevelConsumer.cs, Test.Consumer/SimpleConsumer.cs an
             {
                 // Do something with message...
             })
-            .Start();
-        handler.WaitOne(); // Block the thread from disposing everything
+            .Start()
+            .Block(); // Block the thread from disposing everything
     }
 
 ### High Level Producer
