@@ -11,7 +11,6 @@ namespace Kafka.Basic.Test
     {
         private IFixture _fixture;
         private IKafkaConsumerInstance _consumerInstance;
-        private IZookeeperConsumerConnector _zkConnector;
         private Mock<IZookeeperConsumerConnector> _zkConnectorMock;
 
         public KafkaConsumerInstance()

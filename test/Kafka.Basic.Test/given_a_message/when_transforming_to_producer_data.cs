@@ -22,7 +22,11 @@ namespace Kafka.Basic.Test.given_a_message
             var expected = new ProducerData<string, KafkaMessage>(
                 "topic",
                 "key1",
-                new KafkaMessage(Encoding.UTF8.GetBytes("value1"))
+                new KafkaMessage(
+                    Encoding.UTF8.GetBytes("value1"),
+                    Encoding.UTF8.GetBytes("key1"),
+                    CompressionCodecs.NoCompressionCodec
+                    )
                 );
             var actual = message.AsProducerData("topic");
 
@@ -38,7 +42,7 @@ namespace Kafka.Basic.Test.given_a_message
                 Value = "value1",
                 Codec = codec
             };
-            
+
             var actual = message.AsProducerData("topic");
 
             actual.Data.First().CompressionCodec.ShouldBeEquivalentTo(expected);
