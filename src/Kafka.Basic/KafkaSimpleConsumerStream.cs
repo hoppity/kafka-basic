@@ -26,7 +26,8 @@ namespace Kafka.Basic
         private KafkaSimpleManager<string, Message> _manager;
         private long _nextOffset;
         private Consumer _consumer;
-        private AutoResetEvent _handler;
+        private AutoResetEvent _shutdownEvent;
+        private EventWaitHandle _resumeEvent;
 
         private Action<ConsumedMessage> _dataSubscriber;
         private Action<Exception> _errorSubscriber;
@@ -67,7 +68,8 @@ namespace Kafka.Basic
 
         public IKafkaConsumerStream Start()
         {
-            _handler = new AutoResetEvent(false);
+            _shutdownEvent = new AutoResetEvent(false);
+            _resumeEvent = new EventWaitHandle(true, EventResetMode.ManualReset);
             _running = true;
             _thread.Start();
             return this;
@@ -75,7 +77,17 @@ namespace Kafka.Basic
 
         public void Block()
         {
-            _handler.WaitOne();
+            _shutdownEvent.WaitOne();
+        }
+
+        public void Pause()
+        {
+            _resumeEvent.Reset();
+        }
+
+        public void Resume()
+        {
+            _resumeEvent.Set();
         }
 
         private void RunConsumer()
@@ -83,6 +95,8 @@ namespace Kafka.Basic
             while (_running)
             {
                 if (_dataSubscriber == null) continue;
+
+                _resumeEvent.WaitOne();
 
                 IEnumerable<MessageAndOffset> messageAndOffsets = null;
                 try
@@ -99,7 +113,6 @@ namespace Kafka.Basic
                     Thread.Sleep(1000);
                     continue;
                 }
-
 
                 foreach (var mo in messageAndOffsets)
                 {
@@ -228,7 +241,7 @@ namespace Kafka.Basic
         public void Shutdown()
         {
             _running = false;
-            _handler.Set();
+            _shutdownEvent.Set();
         }
 
         public void Dispose()

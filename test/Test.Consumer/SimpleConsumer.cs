@@ -7,6 +7,8 @@ namespace Consumer
 {
     class SimpleConsumer
     {
+        private Thread _consoleThread;
+
         public int Start(SimpleConsumerOptions opts)
         {
             var zookeeperString = opts.ZkConnect;
@@ -21,11 +23,7 @@ namespace Consumer
             using (var consumer = client.SimpleConsumer())
             using (var stream = consumer.Subscribe(testTopic, partition, offset))
             {
-                Console.CancelKeyPress += (sender, eventArgs) =>
-                {
-                    eventArgs.Cancel = true;
-                    stream.Shutdown();
-                };
+                ListenToConsole(stream);
 
                 stream
                     .Data(message =>
@@ -41,6 +39,39 @@ namespace Consumer
             }
 
             return 0;
+        }
+
+        private void ListenToConsole(IKafkaConsumerStream stream)
+        {
+            _consoleThread = new Thread(() =>
+            {
+                Console.CancelKeyPress += (sender, eventArgs) =>
+                {
+                    Console.WriteLine("Kill!");
+                    _consoleThread.Abort();
+                };
+                while (true)
+                {
+                    var input = Console.ReadKey(true);
+                    if (input.KeyChar == 'p')
+                    {
+                        stream.Pause();
+                        Console.WriteLine("Paused.");
+                    }
+                    if (input.KeyChar == 'r')
+                    {
+                        stream.Resume();
+                        Console.WriteLine("Resumed.");
+                    }
+                    if (input.KeyChar == 'q')
+                    {
+                        Console.WriteLine("Shutting down...");
+                        stream.Shutdown();
+                        break;
+                    }
+                }
+            });
+            _consoleThread.Start();
         }
     }
 }
