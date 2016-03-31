@@ -21,7 +21,8 @@ namespace Kafka.Basic
         private readonly CancellationTokenSource _tokenSource;
         private readonly Thread _thread;
         private bool _running;
-        private AutoResetEvent _handler;
+        private AutoResetEvent _shutdownEvent;
+        private EventWaitHandle _resumeEvent;
 
         private Action<ConsumedMessage> _dataSubscriber;
         private Action<Exception> _errorSubscriber;
@@ -54,7 +55,8 @@ namespace Kafka.Basic
 
         public IKafkaConsumerStream Start()
         {
-            _handler = new AutoResetEvent(false);
+            _shutdownEvent = new AutoResetEvent(false);
+            _resumeEvent = new EventWaitHandle(true, EventResetMode.ManualReset);
             _running = true;
             _thread.Start();
             return this;
@@ -62,7 +64,17 @@ namespace Kafka.Basic
 
         public void Block()
         {
-            _handler.WaitOne();
+            _shutdownEvent.WaitOne();
+        }
+
+        public void Pause()
+        {
+            _resumeEvent.Reset();
+        }
+
+        public void Resume()
+        {
+            _resumeEvent.Set();
         }
 
         private void RunConsumer()
@@ -73,6 +85,8 @@ namespace Kafka.Basic
 
                 try
                 {
+                    _resumeEvent.WaitOne();
+
                     if (!_stream.iterator.MoveNext()) continue;
                     var message = _stream.iterator.Current;
 
@@ -96,7 +110,7 @@ namespace Kafka.Basic
         {
             _running = false;
             _tokenSource.Cancel();
-            _handler.Set();
+            _shutdownEvent.Set();
         }
 
         public void Dispose()
