@@ -7,7 +7,7 @@ namespace Kafka.Basic
 {
     public interface IKafkaConsumerStream : IDisposable
     {
-        IKafkaConsumerStream Data(Action<Message> action);
+        IKafkaConsumerStream Data(Action<ConsumedMessage> action);
         IKafkaConsumerStream Error(Action<Exception> action);
         IKafkaConsumerStream Close(Action action);
         IKafkaConsumerStream Start();
@@ -23,7 +23,7 @@ namespace Kafka.Basic
         private bool _running;
         private AutoResetEvent _handler;
 
-        private Action<Message> _dataSubscriber;
+        private Action<ConsumedMessage> _dataSubscriber;
         private Action<Exception> _errorSubscriber;
         private Action _closeSubscriber;
 
@@ -34,7 +34,7 @@ namespace Kafka.Basic
             _thread = new Thread(RunConsumer);
         }
 
-        public IKafkaConsumerStream Data(Action<Message> action)
+        public IKafkaConsumerStream Data(Action<ConsumedMessage> action)
         {
             _dataSubscriber = action;
             return this;
@@ -76,8 +76,10 @@ namespace Kafka.Basic
                     if (!_stream.iterator.MoveNext()) continue;
                     var message = _stream.iterator.Current;
 
-                    _dataSubscriber(new Message
+                    _dataSubscriber(new ConsumedMessage
                     {
+                        Partition = message.PartitionId ?? 0,
+                        Offset = message.Offset,
                         Key = message.Key == null ? null : Encoding.UTF8.GetString(message.Key),
                         Value = message.Payload == null ? null : Encoding.UTF8.GetString(message.Payload)
                     });
