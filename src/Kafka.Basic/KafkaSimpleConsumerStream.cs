@@ -28,7 +28,7 @@ namespace Kafka.Basic
         private Consumer _consumer;
         private AutoResetEvent _handler;
 
-        private Action<Message> _dataSubscriber;
+        private Action<ConsumedMessage> _dataSubscriber;
         private Action<Exception> _errorSubscriber;
         private Action _closeSubscriber;
 
@@ -47,7 +47,7 @@ namespace Kafka.Basic
             _nextOffset = offset;
         }
 
-        public IKafkaConsumerStream Data(Action<Message> action)
+        public IKafkaConsumerStream Data(Action<ConsumedMessage> action)
         {
             _dataSubscriber = action;
             return this;
@@ -105,8 +105,10 @@ namespace Kafka.Basic
                 {
                     try
                     {
-                        _dataSubscriber(new Message
+                        _dataSubscriber(new ConsumedMessage
                         {
+                            Partition = mo.Message.PartitionId ?? 0,
+                            Offset = mo.Message.Offset,
                             Key = mo.Message.Key == null ? null : Encoding.UTF8.GetString(mo.Message.Key),
                             Value = mo.Message.Payload == null ? null : Encoding.UTF8.GetString(mo.Message.Payload)
                         });
