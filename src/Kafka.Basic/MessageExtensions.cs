@@ -13,6 +13,7 @@ namespace Kafka.Basic
                 message.Key,
                 new Client.Messages.Message(
                     Encoding.UTF8.GetBytes(message.Value),
+                    Encoding.UTF8.GetBytes(message.Key),
                     (CompressionCodecs)message.Codec
                     )
                 );
