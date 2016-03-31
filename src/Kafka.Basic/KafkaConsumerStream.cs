@@ -13,6 +13,8 @@ namespace Kafka.Basic
         IKafkaConsumerStream Start();
         void Block();
         void Shutdown();
+        void Pause();
+        void Resume();
     }
 
     public class KafkaConsumerStream : IKafkaConsumerStream
