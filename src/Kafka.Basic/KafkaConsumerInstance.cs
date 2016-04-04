@@ -12,6 +12,7 @@ namespace Kafka.Basic
     {
         KafkaConsumerStream Subscribe(string topicName);
         Task Commit();
+        void Commit(string topic, int partition, long offset);
         Task Shutdown();
     }
 
@@ -115,6 +116,11 @@ namespace Kafka.Basic
         public Task Commit()
         {
             return Task.Run(() => _balancedConsumer.CommitOffsets());
+        }
+
+        public void Commit(string topic, int partition, long offset)
+        {
+            _balancedConsumer.CommitOffset(topic, partition, offset, false);
         }
 
     }
