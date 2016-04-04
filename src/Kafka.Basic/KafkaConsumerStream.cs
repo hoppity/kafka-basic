@@ -5,18 +5,6 @@ using Kafka.Client.Consumers;
 
 namespace Kafka.Basic
 {
-    public interface IKafkaConsumerStream : IDisposable
-    {
-        IKafkaConsumerStream Data(Action<ConsumedMessage> action);
-        IKafkaConsumerStream Error(Action<Exception> action);
-        IKafkaConsumerStream Close(Action action);
-        IKafkaConsumerStream Start();
-        void Block();
-        void Shutdown();
-        void Pause();
-        void Resume();
-    }
-
     public class KafkaConsumerStream : IKafkaConsumerStream
     {
         private readonly IKafkaMessageStream<Client.Messages.Message> _stream;

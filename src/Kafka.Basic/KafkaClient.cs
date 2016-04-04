@@ -6,6 +6,7 @@ namespace Kafka.Basic
     {
         IKafkaTopic Topic(string name);
         IKafkaConsumer Consumer(string groupName);
+        IKafkaConsumer Consumer(ConsumerOptions options);
     }
 
     public class KafkaClient : IKafkaClient
@@ -25,6 +26,11 @@ namespace Kafka.Basic
         public IKafkaConsumer Consumer(string groupName)
         {
             return new KafkaConsumer(_zkConnection, groupName);
+        }
+
+        public IKafkaConsumer Consumer(ConsumerOptions options)
+        {
+            return new KafkaConsumer(_zkConnection, options);
         }
 
         public IKafkaSimpleConsumer SimpleConsumer()

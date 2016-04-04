@@ -37,7 +37,7 @@ namespace Kafka.Basic
         {
             var config = new ConsumerConfiguration
             {
-                AutoCommit = options.AutoCommit,
+                AutoCommit = !options.Batch && options.AutoCommit,
                 GroupId = options.GroupName,
                 ZooKeeper = new ZooKeeperConfiguration(
                     _zkConnect,
