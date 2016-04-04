@@ -10,7 +10,7 @@ namespace Kafka.Basic
 {
     public interface IKafkaConsumerInstance : IDisposable
     {
-        KafkaConsumerStream Subscribe(string topicName);
+        IKafkaConsumerStream Subscribe(string topicName);
         Task Commit();
         void Commit(string topic, int partition, long offset);
         Task Shutdown();
@@ -26,22 +26,15 @@ namespace Kafka.Basic
             _balancedConsumer = CreateZookeeperConnector(config);
         }
 
-
         public KafkaConsumerInstance(IZookeeperConsumerConnector connector)
         {
             _balancedConsumer = connector;
-        }
-
-        public KafkaConsumerInstance(IZookeeperConnection zkConnect, string groupName)
-        {
-            _balancedConsumer = zkConnect.CreateConsumerConnector(new ConsumerOptions { GroupName = groupName });
         }
 
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
             _balancedConsumer = zkConnect.CreateConsumerConnector(options);
         }
-
 
         private ZookeeperConsumerConnector CreateZookeeperConnector(ConsumerConfiguration config)
         {
@@ -52,7 +45,7 @@ namespace Kafka.Basic
             );
         }
 
-        public KafkaConsumerStream Subscribe(string topicName)
+        public IKafkaConsumerStream Subscribe(string topicName)
         {
             var streams = _balancedConsumer.CreateMessageStreams(
                 new Dictionary<string, int>

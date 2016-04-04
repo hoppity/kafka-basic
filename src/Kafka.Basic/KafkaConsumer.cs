@@ -8,17 +8,17 @@
     public class KafkaConsumer : IKafkaConsumer
     {
         private readonly IZookeeperConnection _zkConnect;
-        private readonly string _groupName;
+        private readonly ConsumerOptions _options;
 
-        public KafkaConsumer(IZookeeperConnection zkConnect, string groupName)
+        public KafkaConsumer(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
             _zkConnect = zkConnect;
-            _groupName = groupName;
+            _options = options;
         }
 
         public KafkaConsumerInstance Join()
         {
-            return new KafkaConsumerInstance(_zkConnect, _groupName);
+            return new KafkaConsumerInstance(_zkConnect, _options);
         }
     }
 }

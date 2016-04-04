@@ -19,8 +19,13 @@ namespace Producer
             var client = new KafkaClient(zkConnect);
             var topic = client.Topic(testTopic);
 
+            var published = 0;
             var stop = false;
-            Console.CancelKeyPress += (sender, eventArgs) => stop = true;
+            Console.CancelKeyPress += (sender, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                stop = true;
+            };
             while (!stop)
             {
                 Thread.Sleep(10);
@@ -37,7 +42,9 @@ namespace Producer
                 topic.Send(batch);
                 var diff = (DateTime.UtcNow.Ticks - time) / 10000;
                 timer.Record(diff, TimeUnit.Milliseconds);
+                published += 100;
             }
+            Console.WriteLine("Published {0} messages", published);
         }
     }
 }
