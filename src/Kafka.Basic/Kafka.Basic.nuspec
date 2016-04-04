@@ -6,8 +6,6 @@
     <authors>Ducas Francis</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Native .NET client library for Kafka providing a basic API over microsoft/kafkanet.</description>
-    <dependencies>
-      <dependency id="KafkaNet" version="0.0.1-alpha000012" />
-    </dependencies>
+    <projectUrl>https://github.com/hoppity/kafka-basic</projectUrl>
   </metadata>
 </package>
