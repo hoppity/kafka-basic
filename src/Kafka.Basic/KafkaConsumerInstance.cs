@@ -38,11 +38,7 @@ namespace Kafka.Basic
 
         private ZookeeperConsumerConnector CreateZookeeperConnector(ConsumerConfiguration config)
         {
-            return new ZookeeperConsumerConnector(config, true,
-                OnRebalance,
-                OnZkDisconnect,
-                OnZkExpired
-            );
+            return new ZookeeperConsumerConnector(config, true);
         }
 
         public IKafkaConsumerStream Subscribe(string topicName)
@@ -60,21 +56,6 @@ namespace Kafka.Basic
             var consumerStream = new KafkaConsumerStream(stream);
             _streams.Add(consumerStream);
             return consumerStream;
-        }
-
-        private void OnZkExpired(object sender, EventArgs e)
-        {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_EXPIRED");
-        }
-
-        private void OnZkDisconnect(object sender, EventArgs e)
-        {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_DISCONNECT");
-        }
-
-        private void OnRebalance(object sender, EventArgs e)
-        {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_REBALANCE");
         }
 
         public Task Shutdown()
