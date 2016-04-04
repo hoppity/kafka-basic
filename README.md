@@ -82,9 +82,9 @@ Fires up a consumer and listens for messages with timestamps.
 
 ## Producer Tests
 
-Firest up a Simple Producer and sends messages with timestamps.
+Fires up a Simple Producer and sends messages with timestamps.
 
-    .\Producer.exe [zookeeper_connect] [topic_name]
+    .\Producer.exe -z [zookeeper_connection] -t [topic_name] -b [batch_size] -m [number_of_messages]
 
 ### Output
 

@@ -11,19 +11,15 @@ namespace Consumer
 
         public int Start(HighLevelConsumerOptions opts)
         {
-            var zookeeperString = opts.ZkConnect;
-            var consumerGroupId = opts.Group;
-            var testTopic = opts.Topic;
-
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
-            using (var client = new KafkaClient(zookeeperString))
+            using (var client = new KafkaClient(opts.ZkConnect))
             {
-                var consumerGroup = client.Consumer(consumerGroupId);
+                var consumerGroup = client.Consumer(opts.Group);
                 using (var instance = consumerGroup.Join())
                 {
-                    var stream = instance.Subscribe(testTopic);
+                    var stream = instance.Subscribe(opts.Topic);
 
                     ListenToConsole(instance, stream);
 
@@ -43,7 +39,7 @@ namespace Consumer
             return 0;
         }
 
-        private void ListenToConsole(IKafkaConsumerInstance instance, KafkaConsumerStream stream)
+        private void ListenToConsole(IKafkaConsumerInstance instance, IKafkaConsumerStream stream)
         {
             _consoleThread = new Thread(() =>
             {

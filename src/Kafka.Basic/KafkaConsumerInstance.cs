@@ -10,7 +10,7 @@ namespace Kafka.Basic
 {
     public interface IKafkaConsumerInstance : IDisposable
     {
-        KafkaConsumerStream Subscribe(string topicName);
+        IKafkaConsumerStream Subscribe(string topicName);
         Task Commit();
         void Commit(string topic, int partition, long offset);
         Task Shutdown();
@@ -26,15 +26,9 @@ namespace Kafka.Basic
             _balancedConsumer = CreateZookeeperConnector(config);
         }
 
-
         public KafkaConsumerInstance(IZookeeperConsumerConnector connector)
         {
             _balancedConsumer = connector;
-        }
-
-        public KafkaConsumerInstance(IZookeeperConnection zkConnect, string groupName)
-        {
-            _balancedConsumer = zkConnect.CreateConsumerConnector(new ConsumerOptions { GroupName = groupName });
         }
 
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
@@ -42,17 +36,12 @@ namespace Kafka.Basic
             _balancedConsumer = zkConnect.CreateConsumerConnector(options);
         }
 
-
         private ZookeeperConsumerConnector CreateZookeeperConnector(ConsumerConfiguration config)
         {
-            return new ZookeeperConsumerConnector(config, true,
-                OnRebalance,
-                OnZkDisconnect,
-                OnZkExpired
-            );
+            return new ZookeeperConsumerConnector(config, true);
         }
 
-        public KafkaConsumerStream Subscribe(string topicName)
+        public IKafkaConsumerStream Subscribe(string topicName)
         {
             var streams = _balancedConsumer.CreateMessageStreams(
                 new Dictionary<string, int>
@@ -67,21 +56,6 @@ namespace Kafka.Basic
             var consumerStream = new KafkaConsumerStream(stream);
             _streams.Add(consumerStream);
             return consumerStream;
-        }
-
-        private void OnZkExpired(object sender, EventArgs e)
-        {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_EXPIRED");
-        }
-
-        private void OnZkDisconnect(object sender, EventArgs e)
-        {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_DISCONNECT");
-        }
-
-        private void OnRebalance(object sender, EventArgs e)
-        {
-            Console.WriteLine($"{DateTime.Now.ToString("s")}: ZK_REBALANCE");
         }
 
         public Task Shutdown()

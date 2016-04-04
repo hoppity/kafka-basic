@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
+using CommandLine;
 using Kafka.Basic;
 using Metrics;
 
@@ -8,10 +9,20 @@ namespace Producer
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            var zkConnect = args.Length > 0 ? args[0] : "192.168.33.10:2181";
-            var testTopic = args.Length > 1 ? args[1] : "test.topic";
+            return Parser.Default
+                .ParseArguments<Options>(args)
+                .MapResult(
+                    Run,
+                    errs => 1
+                );
+        }
+
+        private static int Run(Options options)
+        {
+            var zkConnect = options.ZkConnect;
+            var testTopic = options.Topic;
 
             var timer = Metric.Timer("Sent", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
@@ -19,17 +30,25 @@ namespace Producer
             var client = new KafkaClient(zkConnect);
             var topic = client.Topic(testTopic);
 
+            var published = 0;
             var stop = false;
-            Console.CancelKeyPress += (sender, eventArgs) => stop = true;
+            Console.CancelKeyPress += (sender, eventArgs) =>
+            {
+                eventArgs.Cancel = true;
+                stop = true;
+            };
+
+            var start = DateTime.Now;
+
             while (!stop)
             {
-                Thread.Sleep(10);
+                Thread.Sleep(options.Sleep);
                 var batch =
-                    Enumerable.Range(0, 100)
+                    Enumerable.Range(0, options.BatchSize)
                         .Select(i =>
                             new Message
                             {
-                                Key = i.ToString(),
+                                Key = (published + i).ToString(),
                                 Value = DateTime.UtcNow.Ticks.ToString()
                             })
                         .ToArray();
@@ -37,7 +56,16 @@ namespace Producer
                 topic.Send(batch);
                 var diff = (DateTime.UtcNow.Ticks - time) / 10000;
                 timer.Record(diff, TimeUnit.Milliseconds);
+
+                published += options.BatchSize;
+                if (published >= options.Messages) break;
             }
+            var end = DateTime.Now;
+            var timeTake = (end - start).TotalSeconds;
+
+            Console.WriteLine("Published {0} messages in {1} seconds", published, timeTake);
+
+            return 0;
         }
     }
 }
