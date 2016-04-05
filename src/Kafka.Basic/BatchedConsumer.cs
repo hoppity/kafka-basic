@@ -3,11 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks.Dataflow;
-using Kafka.Client.Utils;
 
 namespace Kafka.Basic
 {
-    public class BatchedConsumer : IDisposable
+    public interface IBatchedConsumer
+    {
+        void Start(
+            Action<IEnumerable<ConsumedMessage>> dataSubscriber,
+            Action<Exception> errorSubscriber = null,
+            Action closeAction = null);
+
+        void Shutdown();
+    }
+
+    public class BatchedConsumer : IDisposable, IBatchedConsumer
     {
         public const int DefaultBatchSizeMax = 1000;
         public const int DefaultBatchTimeoutMs = 100;
@@ -73,10 +82,13 @@ namespace Kafka.Basic
                     {
                         timer.Change(Timeout.Infinite, Timeout.Infinite);
                         dataSubscriber(messages);
-                        messages
+
+                        var map = messages
                             .GroupBy(m => m.Partition)
-                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset))
-                            .ForEach(kvp => _instance.Commit(_topic, kvp.Key, kvp.Value));
+                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset));
+
+                        foreach (var kvp in map)
+                            _instance.Commit(_topic, kvp.Key, kvp.Value);
                     }
                     timer.Change(_batchTimeoutMs, _batchTimeoutMs);
                 });
@@ -108,6 +120,8 @@ namespace Kafka.Basic
         public void Dispose()
         {
             Shutdown();
+
+            _instance.Dispose();
         }
     }
 }
