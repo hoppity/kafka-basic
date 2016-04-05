@@ -12,27 +12,29 @@ namespace Consumer
 
         public int Start(BatchedConsumerOptions opts)
         {
-            var timer = Metric.Timer("Received", Unit.Events);
+            var histogram = Metric.Histogram("batch.size", Unit.Items);
+            var timer = Metric.Timer("message.latency", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
             using (var client = new KafkaClient(opts.ZkConnect))
             using (var consumer = new Kafka.Basic.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
             {
                 ListenToConsole(consumer);
-                Thread.Sleep(5000);
+
                 consumer
                     .Start(m =>
                     {
                         var time = DateTime.UtcNow.Ticks;
-                        m.ToList()
+                        var list = m.ToList();
+                        list
                             .ForEach(message =>
                             {
                                 var value = long.Parse(message.Value);
                                 var diff = (time - value) / 10000;
                                 timer.Record(diff, TimeUnit.Milliseconds);
                             });
-                    }
-                    );
+                        histogram.Update(list.Count);
+                    });
             }
 
             return 0;
