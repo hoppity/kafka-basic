@@ -53,57 +53,80 @@ namespace Kafka.Basic
             Action<Exception> errorSubscriber = null,
             Action closeAction = null)
         {
-            if (!_running)
-            {
-                lock (Lock)
-                {
-                    if (_running) return;
+            if (_running) return;
 
-                    _running = true;
-                }
-            }
             var consumerOptions = new ConsumerOptions
             {
                 GroupName = _group,
                 AutoCommit = false
             };
 
-            var consumer = _client.Consumer(consumerOptions);
-
-            _instance = consumer.Join();
-            _stream = _instance.Subscribe(_topic);
-
-            var batchBlock = new BatchBlock<ConsumedMessage>(_batchSizeMax);
-            using (var timer = new Timer(_ => batchBlock.TriggerBatch(), null, _batchTimeoutMs, _batchTimeoutMs))
+            bool restart;
+            BatchBlock<ConsumedMessage> batchBlock;
+            Timer timer;
+            do
             {
-                var actionBlock = new ActionBlock<ConsumedMessage[]>(messages =>
+                lock (Lock)
                 {
-                    lock (Lock)
+                    Console.WriteLine("Starting consumer.");
+
+                    var consumer = _client.Consumer(consumerOptions);
+
+                    restart = false;
+
+                    _instance = consumer.Join();
+                    _instance.ZookeeperSessionExpired += (sender, args) =>
                     {
-                        timer.Change(Timeout.Infinite, Timeout.Infinite);
-                        dataSubscriber(messages);
+                        Console.WriteLine("Zookeeper session expired. Shutting down to restart...");
+                        restart = true;
+                        Shutdown();
+                    };
+                    _instance.ZookeeperDisconnected += (sender, args) =>
+                    {
+                        Console.WriteLine("Zookeeper disconnected. Shutting down to restart...");
+                        restart = true;
+                        Shutdown();
+                    };
+                    _stream = _instance.Subscribe(_topic);
 
-                        var map = messages
-                            .GroupBy(m => m.Partition)
-                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset));
+                    batchBlock = new BatchBlock<ConsumedMessage>(_batchSizeMax);
+                    timer = new Timer(_ => batchBlock.TriggerBatch(), null, _batchTimeoutMs, _batchTimeoutMs);
+                    var actionBlock = new ActionBlock<ConsumedMessage[]>(messages =>
+                    {
+                        lock (Lock)
+                        {
+                            timer.Change(Timeout.Infinite, Timeout.Infinite);
+                            dataSubscriber(messages);
 
-                        foreach (var kvp in map)
-                            _instance.Commit(_topic, kvp.Key, kvp.Value);
-                    }
-                    timer.Change(_batchTimeoutMs, _batchTimeoutMs);
-                });
-                batchBlock.LinkTo(actionBlock);
+                            var map = messages
+                                .GroupBy(m => m.Partition)
+                                .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset));
 
-                _stream.Data(m => { lock (Lock) batchBlock.Post(m); });
+                            foreach (var kvp in map)
+                                _instance?.Commit(_topic, kvp.Key, kvp.Value);
+                        }
+                        timer.Change(_batchTimeoutMs, _batchTimeoutMs);
+                    });
+                    batchBlock.LinkTo(actionBlock);
 
-                if (errorSubscriber != null) _stream.Error(errorSubscriber);
-                if (closeAction != null) _stream.Close(closeAction);
+                    _stream.Data(m => { lock (Lock) batchBlock.Post(m); });
 
-                _stream.Start()
-                    .Block();
+                    if (errorSubscriber != null) _stream.Error(errorSubscriber);
+                    if (closeAction != null) _stream.Close(closeAction);
 
+                    _stream.Start();
+
+                    _running = true;
+                }
+
+                _stream.Block();
+
+                timer.Dispose();
                 batchBlock.Complete();
-            }
+
+            } while (restart);
+
+            _running = false;
         }
 
         public void Shutdown()
@@ -114,14 +137,14 @@ namespace Kafka.Basic
                 if (!_running) return;
 
                 _instance?.Shutdown();
+                _instance?.Dispose();
+                _instance = null;
             }
         }
 
         public void Dispose()
         {
             Shutdown();
-
-            _instance?.Dispose();
         }
     }
 }
