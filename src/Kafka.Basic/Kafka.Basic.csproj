@@ -57,6 +57,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BalancedConsumer.cs" />
     <Compile Include="BatchedConsumer.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ConsumerOptions.cs" />

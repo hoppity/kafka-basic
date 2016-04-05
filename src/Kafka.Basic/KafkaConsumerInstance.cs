@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
 
 namespace Kafka.Basic
 {
     public interface IKafkaConsumerInstance : IDisposable
     {
+        event EventHandler Rebalanced;
+        event EventHandler ZookeeperDisconnected;
+        event EventHandler ZookeeperSessionExpired;
+
         IKafkaConsumerStream Subscribe(string topicName);
         void Commit();
         void Commit(string topic, int partition, long offset);
@@ -17,17 +20,34 @@ namespace Kafka.Basic
     public class KafkaConsumerInstance : IKafkaConsumerInstance
     {
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
-        private readonly IZookeeperConsumerConnector _balancedConsumer;
-
-        public KafkaConsumerInstance(IZookeeperConsumerConnector connector)
-        {
-            _balancedConsumer = connector;
-        }
+        private readonly IBalancedConsumer _balancedConsumer;
 
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
             _balancedConsumer = zkConnect.CreateConsumerConnector(options);
+            _balancedConsumer.Rebalanced += OnRebalanced;
+            _balancedConsumer.ZookeeperDisconnected += OnZookeeperDisconnected;
+            _balancedConsumer.ZookeeperSessionExpired += OnZookeeperSessionExpired;
         }
+
+        protected virtual void OnZookeeperSessionExpired(object sender, EventArgs e)
+        {
+            ZookeeperSessionExpired?.Invoke(sender, e);
+        }
+
+        protected virtual void OnZookeeperDisconnected(object sender, EventArgs e)
+        {
+            ZookeeperDisconnected?.Invoke(sender, e);
+        }
+
+        protected virtual void OnRebalanced(object sender, EventArgs e)
+        {
+            Rebalanced?.Invoke(sender, e);
+        }
+
+        public event EventHandler Rebalanced;
+        public event EventHandler ZookeeperDisconnected;
+        public event EventHandler ZookeeperSessionExpired;
 
         public IKafkaConsumerStream Subscribe(string topicName)
         {
@@ -66,15 +86,6 @@ namespace Kafka.Basic
             stream.Dispose();
         }
 
-        public void Dispose()
-        {
-            if (_streams.Any())
-            {
-                Shutdown();
-            }
-            _balancedConsumer.Dispose();
-        }
-
         public void Commit()
         {
             _balancedConsumer.CommitOffsets();
@@ -85,5 +96,13 @@ namespace Kafka.Basic
             _balancedConsumer.CommitOffset(topic, partition, offset, false);
         }
 
+        public void Dispose()
+        {
+            if (_streams.Any())
+            {
+                Shutdown();
+            }
+            _balancedConsumer.Dispose();
+        }
     }
 }
