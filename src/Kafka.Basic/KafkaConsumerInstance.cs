@@ -11,9 +11,9 @@ namespace Kafka.Basic
     public interface IKafkaConsumerInstance : IDisposable
     {
         IKafkaConsumerStream Subscribe(string topicName);
-        Task Commit();
+        void Commit();
         void Commit(string topic, int partition, long offset);
-        Task Shutdown();
+        void Shutdown();
     }
 
     public class KafkaConsumerInstance : IKafkaConsumerInstance
@@ -58,18 +58,18 @@ namespace Kafka.Basic
             return consumerStream;
         }
 
-        public Task Shutdown()
+        public void Shutdown()
         {
-            return Task.Run(() =>
+            lock (this)
             {
                 foreach (var stream in _streams)
                 {
                     CloseStream(stream);
                 }
-                _streams.Clear();
-                _balancedConsumer.CommitOffsets();
-                _balancedConsumer.ReleaseAllPartitionOwnerships();
-            });
+            }
+            _streams.Clear();
+            _balancedConsumer.CommitOffsets();
+            _balancedConsumer.ReleaseAllPartitionOwnerships();
         }
 
         private void CloseStream(IKafkaConsumerStream stream)
@@ -87,9 +87,9 @@ namespace Kafka.Basic
             _balancedConsumer.Dispose();
         }
 
-        public Task Commit()
+        public void Commit()
         {
-            return Task.Run(() => _balancedConsumer.CommitOffsets());
+            _balancedConsumer.CommitOffsets();
         }
 
         public void Commit(string topic, int partition, long offset)

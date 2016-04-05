@@ -54,9 +54,9 @@ namespace Kafka.Basic.Test
 
 
         [Theory, AutoData]
-        public async void Commit()
+        public void Commit()
         {
-            await _consumerInstance.Commit();
+            _consumerInstance.Commit();
             _zkConnectorMock
                 .Verify(mock => mock.CommitOffsets(),
                 Times.AtLeastOnce());
@@ -64,9 +64,9 @@ namespace Kafka.Basic.Test
 
 
         [Theory, AutoData]
-        public async void ShutDown()
+        public void ShutDown()
         {
-            await _consumerInstance.Shutdown();
+            _consumerInstance.Shutdown();
             _zkConnectorMock
                 .Verify(mock => mock.CommitOffsets(), 
                 Times.Once());
