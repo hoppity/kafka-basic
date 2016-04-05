@@ -59,7 +59,9 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BatchedConsumer.cs" />
     <Compile Include="HighLevelConsumer.cs" />
+    <Compile Include="BatchedConsumerOptions.cs" />
     <Compile Include="HighLevelConsumerOptions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
