@@ -76,7 +76,6 @@ namespace Kafka.Basic
                 }
             }
             _streams.Clear();
-            _balancedConsumer.CommitOffsets();
             _balancedConsumer.ReleaseAllPartitionOwnerships();
         }
 
