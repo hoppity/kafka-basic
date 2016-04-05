@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
 
@@ -21,11 +19,6 @@ namespace Kafka.Basic
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
         private readonly IZookeeperConsumerConnector _balancedConsumer;
 
-        public KafkaConsumerInstance(ConsumerConfiguration config)
-        {
-            _balancedConsumer = CreateZookeeperConnector(config);
-        }
-
         public KafkaConsumerInstance(IZookeeperConsumerConnector connector)
         {
             _balancedConsumer = connector;
@@ -34,11 +27,6 @@ namespace Kafka.Basic
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
             _balancedConsumer = zkConnect.CreateConsumerConnector(options);
-        }
-
-        private ZookeeperConsumerConnector CreateZookeeperConnector(ConsumerConfiguration config)
-        {
-            return new ZookeeperConsumerConnector(config, true);
         }
 
         public IKafkaConsumerStream Subscribe(string topicName)

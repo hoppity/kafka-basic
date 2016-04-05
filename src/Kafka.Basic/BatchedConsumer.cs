@@ -30,7 +30,7 @@ namespace Kafka.Basic
         private readonly int _batchTimeoutMs;
 
         private bool _running;
-        private KafkaConsumerInstance _instance;
+        private IKafkaConsumerInstance _instance;
         private IKafkaConsumerStream _stream;
 
         public BatchedConsumer(
@@ -113,7 +113,7 @@ namespace Kafka.Basic
             {
                 if (!_running) return;
 
-                _instance.Shutdown();
+                _instance?.Shutdown();
             }
         }
 
@@ -121,7 +121,7 @@ namespace Kafka.Basic
         {
             Shutdown();
 
-            _instance.Dispose();
+            _instance?.Dispose();
         }
     }
 }

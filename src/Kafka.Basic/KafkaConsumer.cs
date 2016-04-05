@@ -2,7 +2,7 @@
 {
     public interface IKafkaConsumer
     {
-        KafkaConsumerInstance Join();
+        IKafkaConsumerInstance Join();
     }
 
     public class KafkaConsumer : IKafkaConsumer
@@ -16,7 +16,7 @@
             _options = options;
         }
 
-        public KafkaConsumerInstance Join()
+        public IKafkaConsumerInstance Join()
         {
             return new KafkaConsumerInstance(_zkConnect, _options);
         }
