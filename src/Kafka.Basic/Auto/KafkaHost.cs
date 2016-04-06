@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using Kafka.Basic.Abstracted;
 using log4net;
 
@@ -73,6 +74,15 @@ namespace Kafka.Basic.Auto
                 }
                 _consumers.Add(consumerTuple);
             }
+        }
+
+        public void Shutdown()
+        {
+            var tasks = _consumers
+                .Select(c => Task.Run(() => c.Item2.Shutdown()))
+                .ToArray();
+
+            Task.WaitAll(tasks);
         }
     }
 }

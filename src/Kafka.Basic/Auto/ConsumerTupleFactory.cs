@@ -31,14 +31,14 @@ namespace Kafka.Basic.Auto
         private Tuple<IConsumer, IAbstractedConsumer> Balanced(IBalancedConsumer consumer)
         {
             var kafkaConsumer = new Abstracted.BalancedConsumer(_client, consumer.Group, consumer.Topic);
-            kafkaConsumer.Start(consumer.Receive);
+            kafkaConsumer.StartAsync(consumer.Receive);
             return new Tuple<IConsumer, IAbstractedConsumer>(consumer, kafkaConsumer);
         }
 
         private Tuple<IConsumer, IAbstractedConsumer> Batched(IBatchedConsumer consumer)
         {
             var kafkaConsumer = new BatchedConsumer(_client, consumer.Group, consumer.Topic);
-            kafkaConsumer.Start(consumer.Receive);
+            kafkaConsumer.StartAsync(consumer.Receive);
             return new Tuple<IConsumer, IAbstractedConsumer>(consumer, kafkaConsumer);
         }
     }
