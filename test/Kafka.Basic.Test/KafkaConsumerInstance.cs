@@ -1,4 +1,5 @@
-﻿using Kafka.Client.Consumers;
+﻿using Kafka.Client.Cfg;
+using Kafka.Client.Consumers;
 using Moq;
 using Ploeh.AutoFixture;
 using Ploeh.AutoFixture.Xunit2;
@@ -11,7 +12,8 @@ namespace Kafka.Basic.Test
     {
         private IFixture _fixture;
         private IKafkaConsumerInstance _consumerInstance;
-        private Mock<IZookeeperConsumerConnector> _zkConnectorMock;
+        private Mock<IZookeeperConnection> _zkConnectorMock;
+        private Mock<IBalancedConsumer> _balancedConsumer; 
 
         public KafkaConsumerInstance()
         {
@@ -31,16 +33,21 @@ namespace Kafka.Basic.Test
         }
 
 
-        private void CreateZookeeperConnector()
+        private void SetupMocks()
         {
-            _zkConnectorMock = _fixture.Create<Mock<IZookeeperConsumerConnector>>();
+            _zkConnectorMock = _fixture.Create<Mock<IZookeeperConnection>>();
+            _balancedConsumer = _fixture.Create<Mock<IBalancedConsumer>>();
+
+            _zkConnectorMock
+                .Setup(z => z.CreateConsumerConnector(It.IsAny<ConsumerOptions>()))
+                .Returns(_balancedConsumer.Object);
         }
 
 
         private void CreateConsumerInstance()
         {
-            CreateZookeeperConnector();
-            _consumerInstance = new Basic.KafkaConsumerInstance(_zkConnectorMock.Object);
+            SetupMocks();
+            _consumerInstance = new Basic.KafkaConsumerInstance(_zkConnectorMock.Object, new ConsumerOptions());
         }
 
 
@@ -54,24 +61,24 @@ namespace Kafka.Basic.Test
 
 
         [Theory, AutoData]
-        public async void Commit()
+        public void Commit()
         {
-            await _consumerInstance.Commit();
-            _zkConnectorMock
+            _consumerInstance.Commit();
+            _balancedConsumer
                 .Verify(mock => mock.CommitOffsets(),
                 Times.AtLeastOnce());
         }
 
 
         [Theory, AutoData]
-        public async void ShutDown()
+        public void ShutDown()
         {
-            await _consumerInstance.Shutdown();
-            _zkConnectorMock
+            _consumerInstance.Shutdown();
+            _balancedConsumer
                 .Verify(mock => mock.CommitOffsets(), 
                 Times.Once());
 
-            _zkConnectorMock
+            _balancedConsumer
                 .Verify(mock => mock.ReleaseAllPartitionOwnerships(),
                 Times.Once());
         }
@@ -81,7 +88,7 @@ namespace Kafka.Basic.Test
         public void Dispose()
         {
             _consumerInstance.Dispose();
-            _zkConnectorMock
+            _balancedConsumer
                 .Verify(mock => mock.Dispose(),
                 Times.Once());
         }

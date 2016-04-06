@@ -23,7 +23,7 @@ namespace Kafka.Basic
         private readonly CancellationTokenSource _tokenSource;
         private readonly Thread _thread;
         private bool _running;
-        private AutoResetEvent _shutdownEvent;
+        private EventWaitHandle _shutdownEvent;
         private EventWaitHandle _resumeEvent;
 
         private Action<ConsumedMessage> _dataSubscriber;
@@ -57,7 +57,7 @@ namespace Kafka.Basic
 
         public IKafkaConsumerStream Start()
         {
-            _shutdownEvent = new AutoResetEvent(false);
+            _shutdownEvent = new EventWaitHandle(false, EventResetMode.ManualReset);
             _resumeEvent = new EventWaitHandle(true, EventResetMode.ManualReset);
             _running = true;
             _thread.Start();
@@ -110,6 +110,8 @@ namespace Kafka.Basic
 
         public void Shutdown()
         {
+            if (!_running) return;
+
             _running = false;
             _tokenSource.Cancel();
             _shutdownEvent.Set();
