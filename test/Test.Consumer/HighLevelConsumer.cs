@@ -5,10 +5,8 @@ using Metrics;
 
 namespace Consumer
 {
-    class HighLevelConsumer
+    class HighLevelConsumer : ConsoleApp
     {
-        private Thread _consoleThread;
-
         public int Start(HighLevelConsumerOptions opts)
         {
             var timer = Metric.Timer("Received", Unit.Events);
@@ -21,7 +19,7 @@ namespace Consumer
                 {
                     var stream = instance.Subscribe(opts.Topic);
 
-                    ListenToConsole(instance, stream);
+                    ListenToConsole(instance.Shutdown, stream.Pause, stream.Resume);
 
                     stream
                         .Data(message =>
@@ -37,39 +35,6 @@ namespace Consumer
             }
 
             return 0;
-        }
-
-        private void ListenToConsole(IKafkaConsumerInstance instance, IKafkaConsumerStream stream)
-        {
-            _consoleThread = new Thread(() =>
-            {
-                Console.CancelKeyPress += (sender, eventArgs) =>
-                {
-                    Console.WriteLine("Kill!");
-                    _consoleThread.Abort();
-                };
-                while (true)
-                {
-                    var input = Console.ReadKey(true);
-                    if (input.KeyChar == 'p')
-                    {
-                        stream.Pause();
-                        Console.WriteLine("Paused.");
-                    }
-                    if (input.KeyChar == 'r')
-                    {
-                        stream.Resume();
-                        Console.WriteLine("Resumed.");
-                    }
-                    if (input.KeyChar == 'q')
-                    {
-                        Console.WriteLine("Shutting down...");
-                        instance.Shutdown();
-                        break;
-                    }
-                }
-            });
-            _consoleThread.Start();
         }
     }
 }

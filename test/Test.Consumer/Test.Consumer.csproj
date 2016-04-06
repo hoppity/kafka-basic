@@ -61,7 +61,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AutoBalancedConsumer.cs" />
+    <Compile Include="AutoBalancedConsumerOptions.cs" />
     <Compile Include="BatchedConsumer.cs" />
+    <Compile Include="ConsoleApp.cs" />
     <Compile Include="HighLevelConsumer.cs" />
     <Compile Include="BatchedConsumerOptions.cs" />
     <Compile Include="HighLevelConsumerOptions.cs" />

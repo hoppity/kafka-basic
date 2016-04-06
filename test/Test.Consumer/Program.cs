@@ -10,12 +10,14 @@ namespace Consumer
                 .ParseArguments<
                     HighLevelConsumerOptions,
                     SimpleConsumerOptions,
-                    BatchedConsumerOptions
+                    BatchedConsumerOptions,
+                    AutoBalancedConsumerOptions
                     >(args)
                 .MapResult(
                     (HighLevelConsumerOptions opts) => new HighLevelConsumer().Start(opts),
                     (SimpleConsumerOptions opts) => new SimpleConsumer().Start(opts),
                     (BatchedConsumerOptions opts) => new BatchedConsumer().Start(opts),
+                    (AutoBalancedConsumerOptions opts) => new AutoBalancedConsumer().Start(opts),
                     errs => 1
                 );
         }

@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Linq;
-using System.Threading;
 using Kafka.Basic;
 using Metrics;
 
 namespace Consumer
 {
-    class BatchedConsumer
+    class BatchedConsumer : ConsoleApp
     {
-        private Thread _consoleThread;
-
         public int Start(BatchedConsumerOptions opts)
         {
             var histogram = Metric.Histogram("batch.size", Unit.Items);
@@ -19,7 +16,7 @@ namespace Consumer
             using (var client = new KafkaClient(opts.ZkConnect))
             using (var consumer = new Kafka.Basic.Abstracted.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
             {
-                ListenToConsole(consumer);
+                ListenToConsole(() => consumer.Shutdown());
 
                 consumer
                     .Start(m =>
@@ -38,39 +35,6 @@ namespace Consumer
             }
 
             return 0;
-        }
-
-        private void ListenToConsole(Kafka.Basic.Abstracted.BatchedConsumer consumer)
-        {
-            _consoleThread = new Thread(() =>
-            {
-                Console.CancelKeyPress += (sender, eventArgs) =>
-                {
-                    Console.WriteLine("Kill!");
-                    _consoleThread.Abort();
-                };
-                while (true)
-                {
-                    var input = Console.ReadKey(true);
-                    //if (input.KeyChar == 'p')
-                    //{
-                    //    stream.Pause();
-                    //    Console.WriteLine("Paused.");
-                    //}
-                    //if (input.KeyChar == 'r')
-                    //{
-                    //    stream.Resume();
-                    //    Console.WriteLine("Resumed.");
-                    //}
-                    if (input.KeyChar == 'q')
-                    {
-                        Console.WriteLine("Shutting down...");
-                        consumer.Shutdown();
-                        break;
-                    }
-                }
-            });
-            _consoleThread.Start();
         }
     }
 }
