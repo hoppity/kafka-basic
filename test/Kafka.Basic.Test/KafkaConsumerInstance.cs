@@ -74,9 +74,6 @@ namespace Kafka.Basic.Test
         public void ShutDown()
         {
             _consumerInstance.Shutdown();
-            _balancedConsumer
-                .Verify(mock => mock.CommitOffsets(), 
-                Times.Once());
 
             _balancedConsumer
                 .Verify(mock => mock.ReleaseAllPartitionOwnerships(),

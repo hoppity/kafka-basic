@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks.Dataflow;
+using log4net;
 
 namespace Kafka.Basic
 {
@@ -22,6 +23,8 @@ namespace Kafka.Basic
         public const int DefaultBatchTimeoutMs = 100;
 
         private static readonly object Lock = new object();
+
+        private static ILog Logger = LogManager.GetLogger(typeof (BatchedConsumer));
 
         private readonly IKafkaClient _client;
         private readonly string _group;
@@ -68,7 +71,7 @@ namespace Kafka.Basic
             {
                 lock (Lock)
                 {
-                    Console.WriteLine("Starting consumer.");
+                    Logger.InfoFormat("Starting batched consumer {0} for {1}.", _group, _topic);
 
                     var consumer = _client.Consumer(consumerOptions);
 
@@ -77,13 +80,13 @@ namespace Kafka.Basic
                     _instance = consumer.Join();
                     _instance.ZookeeperSessionExpired += (sender, args) =>
                     {
-                        Console.WriteLine("Zookeeper session expired. Shutting down to restart...");
+                        Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
                         restart = true;
                         Shutdown();
                     };
                     _instance.ZookeeperDisconnected += (sender, args) =>
                     {
-                        Console.WriteLine("Zookeeper disconnected. Shutting down to restart...");
+                        Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
                         restart = true;
                         Shutdown();
                     };
@@ -124,6 +127,7 @@ namespace Kafka.Basic
                 timer.Dispose();
                 batchBlock.Complete();
 
+                Logger.InfoFormat("Consumer {0} for {1} shut down.", _group, _topic);
             } while (restart);
 
             _running = false;
