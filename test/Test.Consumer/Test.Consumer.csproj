@@ -60,6 +60,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AutoBalancedConsumer.cs" />
     <Compile Include="BatchedConsumer.cs" />
     <Compile Include="HighLevelConsumer.cs" />
     <Compile Include="BatchedConsumerOptions.cs" />
