@@ -8,7 +8,6 @@ using log4net;
 
 namespace Kafka.Basic.Abstracted
 {
-    public interface ISimpleConsumer : IAbstractedConsumer<ConsumedMessage> { }
     public interface IBatchedConsumer : IAbstractedConsumer<IEnumerable<ConsumedMessage>> { }
 
     public class BatchedConsumer : IBatchedConsumer
@@ -18,7 +17,7 @@ namespace Kafka.Basic.Abstracted
 
         private static readonly object Lock = new object();
 
-        private static ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof (BatchedConsumer));
 
         private readonly IKafkaClient _client;
         private readonly string _group;

@@ -2,100 +2,77 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Kafka.Basic.Abstracted;
+using log4net;
 
 namespace Kafka.Basic.Auto
 {
     public class KafkaHost
     {
-        private readonly IKafkaClient _client;
-        private readonly IList<IConsumer> _consumers = new List<IConsumer>();
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
+
+        private readonly IList<Tuple<IConsumer, IAbstractedConsumer>> _consumers = new List<Tuple<IConsumer, IAbstractedConsumer>>();
+
+        private readonly IConsumerTupleFactory _factory;
 
         public KafkaHost(string zkConnect)
         {
-            _client = new KafkaClient(zkConnect);
+            _factory = new ConsumerTupleFactory(new KafkaClient(zkConnect));
+        }
+
+        public KafkaHost(IConsumerTupleFactory factory)
+        {
+            _factory = factory;
         }
 
         public void Start()
         {
-            var consumerType = typeof(IConsumer);
-
-            var types = AppDomain.CurrentDomain
-                .GetAssemblies()
-                .SelectMany(a => a.ExportedTypes)
-                .Where(t => consumerType.IsAssignableFrom(t));
-
-            foreach (var type in types)
-            {
-                var methods = type.GetMethods();
-                foreach (var method in methods)
-                {
-                    if (method.GetParameters().Length > 1)
-                    {
-                        // only 1 parameter supported...
-                        continue;
-                    }
-
-                    var firstParameter = method.GetParameters()
-                        .FirstOrDefault();
-
-                    var attributes = firstParameter?.GetCustomAttributes(typeof(TopicAttribute), false);
-                    if (attributes == null || attributes.Length == 0)
-                    {
-                        // no parameters or first parameter does not have TopicAttribute...
-                        // can't be a consumer.
-                        continue;
-                    }
-
-                    if (attributes.Length > 1)
-                    {
-                        // only 1 topic supported...
-                    }
-
-                    var topicAttribute = (TopicAttribute)attributes[0];
-                    if (string.IsNullOrWhiteSpace(topicAttribute.Name))
-                    {
-                        // topic name empty...
-                        continue;
-                    }
-
-                    if (firstParameter.ParameterType == typeof(ConsumedMessage))
-                    {
-                        CreateBalancedConsumer(type, method, topicAttribute.Name);
-                        continue;
-                    }
-
-                    if (firstParameter.ParameterType == typeof(IBatch))
-                    {
-                        // create a batched consumer
-                        continue;
-                    }
-                }
-            }
+            Start(AppDomain.CurrentDomain.GetAssemblies());
         }
 
-        private void CreateBalancedConsumer(Type type, MethodInfo method, string topic)
+        public void Start(params Assembly[] assemblies)
         {
-            var constructor = type.GetConstructor(new Type[0]);
-            if (constructor == null)
+            Start(assemblies.SelectMany(a => a.ExportedTypes).ToArray());
+        }
+
+        public void Start(params Type[] types)
+        {
+            var consumerType = typeof(IConsumer);
+            StartInternal(types.Where(t => consumerType.IsAssignableFrom(t)));
+        }
+
+        private void StartInternal(IEnumerable<Type> types)
+        {
+            foreach (var type in types)
             {
-                // needs default constructor.
-                return;
+                var constructor = type.GetConstructor(new Type[0]);
+                if (constructor == null)
+                {
+                    Logger.WarnFormat("Can not create consumer with type {0}. Type does not have a default constructor.", type.Name);
+                    continue;
+                }
+
+                var consumer = (IConsumer)constructor.Invoke(new object[0]);
+                if (string.IsNullOrWhiteSpace(consumer.Topic))
+                {
+                    Logger.WarnFormat("Can not create consumer with type {0}. Topic must not be empty or whitespace.", type.Name);
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(consumer.Group))
+                {
+                    Logger.WarnFormat("Can not create consumer with type {0}. Group must not be empty or whitespace.", type.Name);
+                    continue;
+                }
+
+                var consumerTuple = _factory.TryBuildFor(consumer);
+                if (consumerTuple == null)
+                {
+                    Logger.DebugFormat("Can not create consumer with type {0}. No appropriate method found for consuming messages.", type.Name);
+                    continue;
+                }
+                _consumers.Add(consumerTuple);
             }
-
-            var consumer = (IConsumer)constructor.Invoke(new object[0]);
-            var kafkaConsumer = _client.Consumer(new ConsumerOptions
-            {
-                AutoCommit = true,
-                AutoOffsetReset = Offset.Earliest,
-                GroupName = consumer.Group
-            });
-
-            var kafkaInstance = kafkaConsumer.Join();
-            var kafkaStream = kafkaInstance
-                .Subscribe(topic)
-                .Data(m => method.Invoke(consumer, new object[] { m }));
-
-             
         }
     }
 }

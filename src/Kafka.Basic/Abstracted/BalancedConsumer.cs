@@ -1,14 +1,15 @@
 ﻿using System;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks.Dataflow;
+using log4net;
 
 namespace Kafka.Basic.Abstracted
 {
     public interface IBalancedConsumer : IAbstractedConsumer<ConsumedMessage> { }
+
     public class BalancedConsumer : IBalancedConsumer
     {
         private static readonly object Lock = new object();
+
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
 
         private readonly IKafkaClient _client;
         private readonly string _group;
@@ -38,14 +39,12 @@ namespace Kafka.Basic.Abstracted
             };
 
             bool restart;
-            BatchBlock<ConsumedMessage> batchBlock;
-            Timer timer;
             do
             {
                 lock (Lock)
                 {
-                    Console.WriteLine("Starting consumer.");
-
+                    Logger.InfoFormat("Starting balanced consumer {0} for {1}.", _group, _topic);
+                    
                     var consumer = _client.Consumer(consumerOptions);
 
                     restart = false;
@@ -53,13 +52,13 @@ namespace Kafka.Basic.Abstracted
                     _instance = consumer.Join();
                     _instance.ZookeeperSessionExpired += (sender, args) =>
                     {
-                        Console.WriteLine("Zookeeper session expired. Shutting down to restart...");
+                        Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
                         restart = true;
                         Shutdown();
                     };
                     _instance.ZookeeperDisconnected += (sender, args) =>
                     {
-                        Console.WriteLine("Zookeeper disconnected. Shutting down to restart...");
+                        Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
                         restart = true;
                         Shutdown();
                     };
@@ -77,6 +76,7 @@ namespace Kafka.Basic.Abstracted
 
                 _stream.Block();
 
+                Logger.InfoFormat("Consumer {0} for {1} shut down.", _group, _topic);
             } while (restart);
 
             _running = false;

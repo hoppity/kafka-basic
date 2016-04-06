@@ -59,6 +59,8 @@
   <ItemGroup>
     <Compile Include="Abstracted\BalancedConsumer.cs" />
     <Compile Include="Abstracted\IAbstractedConsumer.cs" />
+    <Compile Include="Abstracted\SimpleConsumer.cs" />
+    <Compile Include="Auto\ConsumerTupleFactory.cs" />
     <Compile Include="Auto\IBatch.cs" />
     <Compile Include="Auto\ICollector.cs" />
     <Compile Include="Auto\IConsumer.cs" />
