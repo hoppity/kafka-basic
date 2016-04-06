@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using log4net;
 
 namespace Kafka.Basic.Abstracted
@@ -30,6 +31,14 @@ namespace Kafka.Basic.Abstracted
 
         public void Start(Action<ConsumedMessage> dataSubscriber, Action<Exception> errorSubscriber = null, Action closeAction = null)
         {
+            StartAsync(dataSubscriber, errorSubscriber, closeAction).Wait();
+        }
+
+        public async Task StartAsync(
+            Action<ConsumedMessage> dataSubscriber,
+            Action<Exception> errorSubscriber = null,
+            Action closeAction = null)
+        {
             if (_running) return;
 
             var consumerOptions = new ConsumerOptions
@@ -44,7 +53,7 @@ namespace Kafka.Basic.Abstracted
                 lock (Lock)
                 {
                     Logger.InfoFormat("Starting balanced consumer {0} for {1}.", _group, _topic);
-                    
+
                     var consumer = _client.Consumer(consumerOptions);
 
                     restart = false;
@@ -74,14 +83,14 @@ namespace Kafka.Basic.Abstracted
                     _running = true;
                 }
 
-                _stream.Block();
+                await Task.Run(() => _stream.Block());
 
                 Logger.InfoFormat("Consumer {0} for {1} shut down.", _group, _topic);
             } while (restart);
 
             _running = false;
         }
-        
+
         public void Shutdown()
         {
             if (!_running) return;

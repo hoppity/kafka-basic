@@ -17,7 +17,7 @@ namespace Kafka.Basic.Abstracted
 
         private static readonly object Lock = new object();
 
-        private static readonly ILog Logger = LogManager.GetLogger(typeof (BatchedConsumer));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
 
         private readonly IKafkaClient _client;
         private readonly string _group;
@@ -45,6 +45,14 @@ namespace Kafka.Basic.Abstracted
         }
 
         public void Start(
+            Action<IEnumerable<ConsumedMessage>> dataSubscriber,
+            Action<Exception> errorSubscriber = null,
+            Action closeAction = null)
+        {
+            StartAsync(dataSubscriber, errorSubscriber, closeAction).Wait();
+        }
+
+        public async Task StartAsync(
             Action<IEnumerable<ConsumedMessage>> dataSubscriber,
             Action<Exception> errorSubscriber = null,
             Action closeAction = null)
@@ -131,7 +139,7 @@ namespace Kafka.Basic.Abstracted
                     _running = true;
                 }
 
-                _stream.Block();
+                await Task.Run(() => _stream.Block());
 
                 timer.Dispose();
                 batchBlock.Complete();
