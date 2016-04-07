@@ -111,7 +111,7 @@ namespace Kafka.Basic
 
                                 var map = messages
                                     .GroupBy(m => m.Partition)
-                                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset));
+                                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset + 1));
 
                                 foreach (var kvp in map)
                                     _instance?.Commit(_topic, kvp.Key, kvp.Value);
