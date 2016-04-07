@@ -44,7 +44,7 @@ namespace Kafka.Basic.Abstracted
             var consumerOptions = new ConsumerOptions
             {
                 GroupName = _group,
-                AutoCommit = false
+                AutoCommit = true
             };
 
             bool restart;

@@ -12,7 +12,6 @@ namespace Consumer
 
         public int Start(AutoBalancedConsumerOptions opts)
         {
-            Thread.Sleep(5000);
             Options = opts;
 
             var host = new KafkaHost(opts.ZkConnect);
