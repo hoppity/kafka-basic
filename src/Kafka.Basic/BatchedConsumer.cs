@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using log4net;
 
@@ -24,7 +25,7 @@ namespace Kafka.Basic
 
         private static readonly object Lock = new object();
 
-        private static ILog Logger = LogManager.GetLogger(typeof (BatchedConsumer));
+        private static ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
 
         private readonly IKafkaClient _client;
         private readonly string _group;
@@ -35,6 +36,7 @@ namespace Kafka.Basic
         private bool _running;
         private IKafkaConsumerInstance _instance;
         private IKafkaConsumerStream _stream;
+        private bool _forceShutdown;
 
         public BatchedConsumer(
             IKafkaClient client,
@@ -64,11 +66,15 @@ namespace Kafka.Basic
                 AutoCommit = false
             };
 
-            bool restart;
+            var restart = false;
             BatchBlock<ConsumedMessage> batchBlock;
             Timer timer;
             do
             {
+                if (restart) Task.Delay(5000).Wait();
+
+                if (_forceShutdown) break;
+
                 lock (Lock)
                 {
                     Logger.InfoFormat("Starting batched consumer {0} for {1}.", _group, _topic);
@@ -82,13 +88,13 @@ namespace Kafka.Basic
                     {
                         Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
                         restart = true;
-                        Shutdown();
+                        ShutdownInternal();
                     };
                     _instance.ZookeeperDisconnected += (sender, args) =>
                     {
                         Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
                         restart = true;
-                        Shutdown();
+                        ShutdownInternal();
                     };
                     _stream = _instance.Subscribe(_topic);
 
@@ -99,14 +105,26 @@ namespace Kafka.Basic
                         lock (Lock)
                         {
                             timer.Change(Timeout.Infinite, Timeout.Infinite);
-                            dataSubscriber(messages);
+                            try
+                            {
+                                dataSubscriber(messages);
 
-                            var map = messages
-                                .GroupBy(m => m.Partition)
-                                .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset));
+                                var map = messages
+                                    .GroupBy(m => m.Partition)
+                                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset));
 
-                            foreach (var kvp in map)
-                                _instance?.Commit(_topic, kvp.Key, kvp.Value);
+                                foreach (var kvp in map)
+                                    _instance?.Commit(_topic, kvp.Key, kvp.Value);
+                            }
+                            catch (Exception ex)
+                            {
+                                errorSubscriber?.Invoke(ex);
+
+                                Logger.Error($"Exception in consumer {_group} for {_topic}. Restarting...", ex);
+                                restart = true;
+                                ShutdownInternal();
+                                return;
+                            }
                         }
                         timer.Change(_batchTimeoutMs, _batchTimeoutMs);
                     });
@@ -135,10 +153,18 @@ namespace Kafka.Basic
 
         public void Shutdown()
         {
+            ShutdownInternal(true);
+        }
+
+        private void ShutdownInternal(bool force = false)
+        {
             if (!_running) return;
             lock (Lock)
             {
                 if (!_running) return;
+
+                if (_forceShutdown) return;
+                _forceShutdown = force;
 
                 _instance?.Shutdown();
                 _instance?.Dispose();
