@@ -61,6 +61,7 @@
     <Compile Include="BatchedConsumer.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ConsumerOptions.cs" />
+    <Compile Include="EncodingExtensions.cs" />
     <Compile Include="KafkaClient.cs" />
     <Compile Include="KafkaConsumer.cs" />
     <Compile Include="KafkaConsumerInstance.cs" />

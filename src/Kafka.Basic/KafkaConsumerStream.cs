@@ -96,8 +96,8 @@ namespace Kafka.Basic
                     {
                         Partition = message.PartitionId ?? 0,
                         Offset = message.Offset,
-                        Key = message.Key == null ? null : Encoding.UTF8.GetString(message.Key),
-                        Value = message.Payload == null ? null : Encoding.UTF8.GetString(message.Payload)
+                        Key = message.Key.Decode(),
+                        Value = message.Payload.Decode()
                     });
                 }
                 catch (Exception ex)

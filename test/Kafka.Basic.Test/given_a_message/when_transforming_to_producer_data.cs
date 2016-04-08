@@ -33,6 +33,28 @@ namespace Kafka.Basic.Test.given_a_message
             actual.ShouldBeEquivalentTo(expected);
         }
 
+        [Fact]
+        public void then_key_and_value_should_be_set_when_key_null()
+        {
+            var message = new Message
+            {
+                Key = null,
+                Value = "value1"
+            };
+            var expected = new ProducerData<string, KafkaMessage>(
+                "topic",
+                null,
+                new KafkaMessage(
+                    Encoding.UTF8.GetBytes("value1"),
+                    null,
+                    CompressionCodecs.NoCompressionCodec
+                    )
+                );
+            var actual = message.AsProducerData("topic");
+
+            actual.ShouldBeEquivalentTo(expected);
+        }
+
         [Theory, MemberData("CompressionCodecMappings")]
         public void then_codec_should_be_set(Compression codec, CompressionCodecs expected)
         {

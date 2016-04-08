@@ -1,5 +1,4 @@
-﻿using System.Text;
-using Kafka.Client.Messages;
+﻿using Kafka.Client.Messages;
 using Kafka.Client.Producers;
 
 namespace Kafka.Basic
@@ -12,8 +11,8 @@ namespace Kafka.Basic
                 topic,
                 message.Key,
                 new Client.Messages.Message(
-                    Encoding.UTF8.GetBytes(message.Value),
-                    Encoding.UTF8.GetBytes(message.Key),
+                    message.Value.Encode(),
+                    message.Key.Encode(),
                     (CompressionCodecs)message.Codec
                     )
                 );
