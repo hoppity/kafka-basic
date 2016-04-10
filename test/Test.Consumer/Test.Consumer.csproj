@@ -61,6 +61,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BatchedConsumer.cs" />
+    <Compile Include="ChaosMonkeyOptions.cs" />
+    <Compile Include="ChaosMonkey.cs" />
     <Compile Include="HighLevelConsumer.cs" />
     <Compile Include="BatchedConsumerOptions.cs" />
     <Compile Include="HighLevelConsumerOptions.cs" />
