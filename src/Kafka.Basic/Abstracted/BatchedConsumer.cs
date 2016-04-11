@@ -6,19 +6,11 @@ using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 using log4net;
 
-namespace Kafka.Basic
+namespace Kafka.Basic.Abstracted
 {
-    public interface IBatchedConsumer
-    {
-        void Start(
-            Action<IEnumerable<ConsumedMessage>> dataSubscriber,
-            Action<Exception> errorSubscriber = null,
-            Action closeAction = null);
+    public interface IBatchedConsumer : IAbstractedConsumer<IEnumerable<ConsumedMessage>> { }
 
-        void Shutdown();
-    }
-
-    public class BatchedConsumer : IDisposable, IBatchedConsumer
+    public class BatchedConsumer : IBatchedConsumer
     {
         public const int DefaultBatchSizeMax = 1000;
         public const int DefaultBatchTimeoutMs = 100;
@@ -51,7 +43,6 @@ namespace Kafka.Basic
             _batchSizeMax = batchSizeMax;
             _batchTimeoutMs = batchTimeoutMs;
         }
-
 
         public void Start(
             Action<IEnumerable<ConsumedMessage>> dataSubscriber,

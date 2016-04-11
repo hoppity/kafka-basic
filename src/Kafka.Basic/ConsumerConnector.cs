@@ -6,7 +6,7 @@ using Kafka.Client.Serialization;
 
 namespace Kafka.Basic
 {
-    public interface IBalancedConsumer : IDisposable
+    public interface IConsumerConnector : IDisposable
     {
         event EventHandler Rebalanced;
         event EventHandler ZookeeperDisconnected;
@@ -22,7 +22,7 @@ namespace Kafka.Basic
         void CommitOffset(string topic, int partition, long offset, bool setPosition);
     }
 
-    internal class BalancedConsumer : IBalancedConsumer
+    internal class ConsumerConnector : IConsumerConnector
     {
         private readonly IZookeeperConsumerConnector _connector;
 
@@ -30,7 +30,7 @@ namespace Kafka.Basic
         public event EventHandler ZookeeperDisconnected;
         public event EventHandler ZookeeperSessionExpired;
 
-        public BalancedConsumer(ConsumerConfiguration config)
+        public ConsumerConnector(ConsumerConfiguration config)
         {
             _connector = new ZookeeperConsumerConnector(config, true, OnRebalanced, OnZookeeperDisconnected, OnZookeeperSessionExpired);
         }

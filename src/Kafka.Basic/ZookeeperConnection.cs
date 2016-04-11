@@ -7,7 +7,7 @@ namespace Kafka.Basic
     public interface IZookeeperConnection
     {
         IZookeeperClient CreateClient();
-        IBalancedConsumer CreateConsumerConnector(ConsumerOptions options);
+        IConsumerConnector CreateConsumerConnector(ConsumerOptions options);
         KafkaSimpleManager<string, Message> CreateSimpleManager();
     }
 
@@ -33,7 +33,7 @@ namespace Kafka.Basic
             return new ZookeeperClient(_zkConnect);
         }
 
-        public IBalancedConsumer CreateConsumerConnector(ConsumerOptions options)
+        public IConsumerConnector CreateConsumerConnector(ConsumerOptions options)
         {
             var config = new ConsumerConfiguration
             {
@@ -48,7 +48,7 @@ namespace Kafka.Basic
                 BackOffIncrement = 0,
                 MaxFetchWaitMs = 1000
             };
-            return new BalancedConsumer(config);
+            return new ConsumerConnector(config);
         }
 
         public KafkaSimpleManager<string, Message> CreateSimpleManager()

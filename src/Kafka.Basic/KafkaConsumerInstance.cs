@@ -20,14 +20,14 @@ namespace Kafka.Basic
     public class KafkaConsumerInstance : IKafkaConsumerInstance
     {
         private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
-        private readonly IBalancedConsumer _balancedConsumer;
+        private readonly IConsumerConnector _consumerConnector;
 
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
-            _balancedConsumer = zkConnect.CreateConsumerConnector(options);
-            _balancedConsumer.Rebalanced += OnRebalanced;
-            _balancedConsumer.ZookeeperDisconnected += OnZookeeperDisconnected;
-            _balancedConsumer.ZookeeperSessionExpired += OnZookeeperSessionExpired;
+            _consumerConnector = zkConnect.CreateConsumerConnector(options);
+            _consumerConnector.Rebalanced += OnRebalanced;
+            _consumerConnector.ZookeeperDisconnected += OnZookeeperDisconnected;
+            _consumerConnector.ZookeeperSessionExpired += OnZookeeperSessionExpired;
         }
 
         protected virtual void OnZookeeperSessionExpired(object sender, EventArgs e)
@@ -51,7 +51,7 @@ namespace Kafka.Basic
 
         public IKafkaConsumerStream Subscribe(string topicName)
         {
-            var streams = _balancedConsumer.CreateMessageStreams(
+            var streams = _consumerConnector.CreateMessageStreams(
                 new Dictionary<string, int>
                 {
                     {topicName, 1}
@@ -76,7 +76,7 @@ namespace Kafka.Basic
                 }
             }
             _streams.Clear();
-            _balancedConsumer.ReleaseAllPartitionOwnerships();
+            _consumerConnector.ReleaseAllPartitionOwnerships();
         }
 
         private void CloseStream(IKafkaConsumerStream stream)
@@ -87,12 +87,12 @@ namespace Kafka.Basic
 
         public void Commit()
         {
-            _balancedConsumer.CommitOffsets();
+            _consumerConnector.CommitOffsets();
         }
 
         public void Commit(string topic, int partition, long offset)
         {
-            _balancedConsumer.CommitOffset(topic, partition, offset, false);
+            _consumerConnector.CommitOffset(topic, partition, offset, false);
         }
 
         public void Dispose()
@@ -101,7 +101,7 @@ namespace Kafka.Basic
             {
                 Shutdown();
             }
-            _balancedConsumer.Dispose();
+            _consumerConnector.Dispose();
         }
     }
 }

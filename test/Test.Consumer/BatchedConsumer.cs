@@ -17,7 +17,7 @@ namespace Consumer
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
             using (var client = new KafkaClient(opts.ZkConnect))
-            using (var consumer = new Kafka.Basic.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
+            using (var consumer = new Kafka.Basic.Abstracted.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
             {
                 ListenToConsole(consumer);
 
@@ -40,7 +40,7 @@ namespace Consumer
             return 0;
         }
 
-        private void ListenToConsole(Kafka.Basic.BatchedConsumer consumer)
+        private void ListenToConsole(Kafka.Basic.Abstracted.BatchedConsumer consumer)
         {
             _consoleThread = new Thread(() =>
             {

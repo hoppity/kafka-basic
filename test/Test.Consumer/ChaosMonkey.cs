@@ -23,7 +23,7 @@ namespace Consumer
             var waitModulus = random.Next(50, 75);
 
             using (var client = new KafkaClient(opts.ZkConnect))
-            using (var consumer = new Kafka.Basic.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
+            using (var consumer = new Kafka.Basic.Abstracted.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
             {
                 var call = 0;
                 consumer
