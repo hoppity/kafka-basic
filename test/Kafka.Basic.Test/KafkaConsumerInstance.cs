@@ -1,5 +1,9 @@
-﻿using Kafka.Client.Cfg;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
+using Kafka.Client.Serialization;
 using Moq;
 using Ploeh.AutoFixture;
 using Ploeh.AutoFixture.Xunit2;
@@ -13,7 +17,7 @@ namespace Kafka.Basic.Test
         private IFixture _fixture;
         private IKafkaConsumerInstance _consumerInstance;
         private Mock<IZookeeperConnection> _zkConnectorMock;
-        private Mock<IConsumerConnector> _consumerConnector; 
+        private Mock<IConsumerConnector> _consumerConnector;
 
         public KafkaConsumerInstance()
         {
@@ -52,9 +56,9 @@ namespace Kafka.Basic.Test
 
 
         [Theory, AutoData]
-        public void Subscribe(string topicName)
+        public void Subscribe(string topicName, int threads)
         {
-            var stream = _consumerInstance.Subscribe(topicName);
+            var stream = _consumerInstance.Subscribe(topicName, threads);
 
             Assert.NotNull(stream);
         }

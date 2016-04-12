@@ -12,6 +12,7 @@ namespace Kafka.Basic
         event EventHandler ZookeeperSessionExpired;
 
         IKafkaConsumerStream Subscribe(string topicName);
+        IEnumerable<IKafkaConsumerStream> Subscribe(string topicName, int threads);
         void Commit();
         void Commit(string topic, int partition, long offset);
         void Shutdown();
@@ -19,7 +20,7 @@ namespace Kafka.Basic
 
     public class KafkaConsumerInstance : IKafkaConsumerInstance
     {
-        private readonly IList<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
+        private readonly List<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
         private readonly IConsumerConnector _consumerConnector;
 
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
@@ -51,19 +52,25 @@ namespace Kafka.Basic
 
         public IKafkaConsumerStream Subscribe(string topicName)
         {
+            return Subscribe(topicName, 1).First();
+        }
+
+        public IEnumerable<IKafkaConsumerStream> Subscribe(string topicName, int threads)
+        {
             var streams = _consumerConnector.CreateMessageStreams(
                 new Dictionary<string, int>
                 {
-                    {topicName, 1}
+                    {topicName, threads}
                 },
                 new DefaultDecoder()
             );
 
-            var stream = streams[topicName][0];
+            var consumerStreams = streams[topicName]
+                .Select(s => new KafkaConsumerStream(s))
+                .ToArray();
+            _streams.AddRange(consumerStreams);
 
-            var consumerStream = new KafkaConsumerStream(stream);
-            _streams.Add(consumerStream);
-            return consumerStream;
+            return consumerStreams;
         }
 
         public void Shutdown()
