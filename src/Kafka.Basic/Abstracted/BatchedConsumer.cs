@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Kafka.Client.Consumers;
+using Kafka.Client.Serialization;
+using Kafka.Client.Utils;
 using log4net;
 
 namespace Kafka.Basic.Abstracted
@@ -12,35 +16,35 @@ namespace Kafka.Basic.Abstracted
 
     public class BatchedConsumer : IBatchedConsumer
     {
-        public const int DefaultBatchSizeMax = 1000;
+        public const int DefaultNumberOfThreads = 1;
         public const int DefaultBatchTimeoutMs = 100;
 
         private static readonly object Lock = new object();
 
-        private static ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
 
-        private readonly IKafkaClient _client;
+        private readonly ZookeeperConnection _connection;
         private readonly string _group;
         private readonly string _topic;
-        private readonly int _batchSizeMax;
+        private readonly int _threads;
         private readonly int _batchTimeoutMs;
 
         private bool _running;
-        private IKafkaConsumerInstance _instance;
-        private IKafkaConsumerStream _stream;
         private bool _forceShutdown;
+        private bool _restart;
+        private IConsumerConnector _consumer;
 
         public BatchedConsumer(
-            IKafkaClient client,
+            string connection,
             string group,
             string topic,
-            int batchSizeMax = DefaultBatchSizeMax,
+            int threads = DefaultNumberOfThreads,
             int batchTimeoutMs = DefaultBatchTimeoutMs)
         {
-            _client = client;
+            _connection = new ZookeeperConnection(connection);
             _group = group;
             _topic = topic;
-            _batchSizeMax = batchSizeMax;
+            _threads = threads;
             _batchTimeoutMs = batchTimeoutMs;
         }
 
@@ -51,95 +55,135 @@ namespace Kafka.Basic.Abstracted
         {
             if (_running) return;
 
-            var consumerOptions = new ConsumerOptions
-            {
-                GroupName = _group,
-                AutoCommit = false
-            };
-
-            var restart = false;
-            BatchBlock<ConsumedMessage> batchBlock;
-            Timer timer;
+            _restart = false;
             do
             {
-                if (restart) Task.Delay(5000).Wait();
+                if (_restart) Task.Delay(5000).Wait();
 
                 if (_forceShutdown) break;
 
+                Task[] tasks;
                 lock (Lock)
                 {
                     Logger.InfoFormat("Starting batched consumer {0} for {1}.", _group, _topic);
 
-                    var consumer = _client.Consumer(consumerOptions);
+                    _restart = false;
 
-                    restart = false;
+                    try
+                    {
+                        _consumer = _connection.CreateConsumerConnector(new ConsumerOptions
+                        {
+                            GroupName = _group,
+                            AutoCommit = false,
+                            AutoOffsetReset = Offset.Earliest
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Exception creating {_group} for {_topic}. Restarting...", ex);
+                        Restart();
+                        continue;
+                    }
+                    var streams = _consumer.CreateMessageStreams(
+                        new Dictionary<string, int>
+                        {
+                            {_topic, _threads}
+                        },
+                        new DefaultDecoder());
 
-                    _instance = consumer.Join();
-                    _instance.ZookeeperSessionExpired += (sender, args) =>
+                    _consumer.ZookeeperSessionExpired += (sender, args) =>
                     {
                         Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
-                        restart = true;
-                        ShutdownInternal();
+                        Restart();
                     };
-                    _instance.ZookeeperDisconnected += (sender, args) =>
+                    _consumer.ZookeeperDisconnected += (sender, args) =>
                     {
                         Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
-                        restart = true;
-                        ShutdownInternal();
+                        Restart();
                     };
-                    _stream = _instance.Subscribe(_topic);
-
-                    batchBlock = new BatchBlock<ConsumedMessage>(_batchSizeMax);
-                    timer = new Timer(_ => batchBlock.TriggerBatch(), null, _batchTimeoutMs, _batchTimeoutMs);
-                    var actionBlock = new ActionBlock<ConsumedMessage[]>(messages =>
-                    {
-                        lock (Lock)
-                        {
-                            timer.Change(Timeout.Infinite, Timeout.Infinite);
-                            try
-                            {
-                                dataSubscriber(messages);
-
-                                var map = messages
-                                    .GroupBy(m => m.Partition)
-                                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset + 1));
-
-                                foreach (var kvp in map)
-                                    _instance?.Commit(_topic, kvp.Key, kvp.Value);
-                            }
-                            catch (Exception ex)
-                            {
-                                errorSubscriber?.Invoke(ex);
-
-                                Logger.Error($"Exception in consumer {_group} for {_topic}. Restarting...", ex);
-                                restart = true;
-                                ShutdownInternal();
-                                return;
-                            }
-                        }
-                        timer.Change(_batchTimeoutMs, _batchTimeoutMs);
-                    });
-                    batchBlock.LinkTo(actionBlock);
-
-                    _stream.Data(m => { lock (Lock) batchBlock.Post(m); });
-
-                    if (errorSubscriber != null) _stream.Error(errorSubscriber);
-                    if (closeAction != null) _stream.Close(closeAction);
-
-                    _stream.Start();
 
                     _running = true;
+
+                    tasks = streams[_topic]
+                        .Select(s => StartConsumer(s, dataSubscriber, errorSubscriber, closeAction))
+                        .ToArray();
                 }
 
-                _stream.Block();
-
-                timer.Dispose();
-                batchBlock.Complete();
+                Task.WaitAll(tasks);
 
                 Logger.InfoFormat("Consumer {0} for {1} shut down.", _group, _topic);
-            } while (restart);
+            } while (_restart);
 
             _running = false;
+        }
+
+        private readonly IList<Thread> _threadList = new List<Thread>();
+        private Task StartConsumer(
+            IKafkaMessageStream<Client.Messages.Message> stream,
+            Action<IEnumerable<ConsumedMessage>> dataSubscriber,
+            Action<Exception> errorSubscriber,
+            Action closeAction)
+        {
+            var completionSource = new TaskCompletionSource<bool>();
+            var thread = new Thread(() =>
+            {
+                while (_consumer != null)
+                {
+                    var tokenSource = new CancellationTokenSource(_batchTimeoutMs);
+                    try
+                    {
+                        var cancellable = stream.GetCancellable(tokenSource.Token);
+                        var messages = cancellable
+                            .Select(message => message.AsConsumedMessage())
+                            .ToArray();
+
+                        if (messages.Length == 0) continue;
+
+                        dataSubscriber(messages);
+
+                        var map = messages
+                            .GroupBy(m => m.Partition)
+                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset + 1));
+
+                        foreach (var kvp in map)
+                            Commit(kvp.Key, kvp.Value);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Exception in consumer {_group} for {_topic}. Restarting...", ex);
+                        errorSubscriber?.Invoke(ex);
+
+                        Restart();
+                        break;
+                    }
+                    finally
+                    {
+                        tokenSource.Dispose();
+                    }
+                }
+                completionSource.SetResult(true);
+                closeAction?.Invoke();
+            });
+
+            _threadList.Add(thread);
+            Console.WriteLine(_threadList.Count);
+            thread.Start();
+
+            return completionSource.Task;
+        }
+
+        private void Commit(int partition, long offset)
+        {
+            lock (Lock)
+            {
+                _consumer?.CommitOffset(_topic, partition, offset, false);
+            }
+        }
+
+        private void Restart()
+        {
+            _restart = true;
+            ShutdownInternal();
         }
 
         public void Shutdown()
@@ -157,9 +201,10 @@ namespace Kafka.Basic.Abstracted
                 if (_forceShutdown) return;
                 _forceShutdown = force;
 
-                _instance?.Shutdown();
-                _instance?.Dispose();
-                _instance = null;
+                var c = _consumer;
+                _consumer = null;
+                c.Dispose();
+                _threadList.Clear();
             }
         }
 

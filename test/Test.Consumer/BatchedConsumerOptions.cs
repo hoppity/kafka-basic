@@ -11,8 +11,8 @@ namespace Consumer
         public string Group { get; set; }
         [Option('t', "topic", Required = true, HelpText = "The name of the topic.")]
         public string Topic { get; set; }
-        [Option('s', "batchSizeMax", Required = false, HelpText = "The maximum size of the batch.", Default = Kafka.Basic.Abstracted.BatchedConsumer.DefaultBatchSizeMax)]
-        public int BatchSizeMax { get; set; }
+        [Option('h', "threads", Required = false, HelpText = "The number of consumer threads.", Default = Kafka.Basic.Abstracted.BatchedConsumer.DefaultNumberOfThreads)]
+        public int Threads { get; set; }
         [Option('b', "batchTimeoutMs", Required = false, HelpText = "The maximum time to wait for messages to batch.", Default = Kafka.Basic.Abstracted.BatchedConsumer.DefaultBatchTimeoutMs)]
         public int BatchTimeoutMs { get; set; }
     }
