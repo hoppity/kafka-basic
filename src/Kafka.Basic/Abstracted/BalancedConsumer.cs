@@ -1,30 +1,41 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks.Dataflow;
+using System.Threading.Tasks;
+using Kafka.Client.Utils;
+using log4net;
 
 namespace Kafka.Basic.Abstracted
 {
     public interface IBalancedConsumer : IAbstractedConsumer<ConsumedMessage> { }
+
     public class BalancedConsumer : IBalancedConsumer
     {
+        private const int DefaultNumberOfThreads = 1;
+
         private static readonly object Lock = new object();
+
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(BalancedConsumer));
 
         private readonly IKafkaClient _client;
         private readonly string _group;
         private readonly string _topic;
+        private readonly int _threads;
         private bool _running;
         private IKafkaConsumerInstance _instance;
-        private IKafkaConsumerStream _stream;
+        private IEnumerable<IKafkaConsumerStream> _streams;
+        private bool _restart;
 
         public BalancedConsumer(
             IKafkaClient client,
             string group,
-            string topic)
+            string topic,
+            int threads = DefaultNumberOfThreads)
         {
             _client = client;
             _group = group;
             _topic = topic;
+            _threads = threads;
         }
 
         public void Start(Action<ConsumedMessage> dataSubscriber, Action<Exception> errorSubscriber = null, Action closeAction = null)
@@ -34,57 +45,72 @@ namespace Kafka.Basic.Abstracted
             var consumerOptions = new ConsumerOptions
             {
                 GroupName = _group,
-                AutoCommit = false
+                AutoCommit = true
             };
 
-            bool restart;
-            BatchBlock<ConsumedMessage> batchBlock;
-            Timer timer;
             do
             {
+                if (_restart) Task.Delay(5000).Wait();
+
                 lock (Lock)
                 {
-                    Console.WriteLine("Starting consumer.");
-
-                    var consumer = _client.Consumer(consumerOptions);
-
-                    restart = false;
-
-                    _instance = consumer.Join();
-                    _instance.ZookeeperSessionExpired += (sender, args) =>
+                    try
                     {
-                        Console.WriteLine("Zookeeper session expired. Shutting down to restart...");
-                        restart = true;
-                        Shutdown();
-                    };
-                    _instance.ZookeeperDisconnected += (sender, args) =>
+                        Logger.Info("Starting consumer.");
+
+                        var consumer = _client.Consumer(consumerOptions);
+
+                        _restart = false;
+
+                        _instance = consumer.Join();
+                        _instance.ZookeeperSessionExpired += (sender, args) =>
+                        {
+                            Logger.Warn("Zookeeper session expired. Shutting down to restart...");
+                            Restart();
+                        };
+                        _instance.ZookeeperDisconnected += (sender, args) =>
+                        {
+                            Logger.Warn("Zookeeper disconnected. Shutting down to restart...");
+                            Restart();
+                        };
+                        _streams = _instance.Subscribe(_topic, _threads).ToArray();
+
+                        _streams.ForEach(s =>
+                        {
+                            s.Data(dataSubscriber);
+
+                            if (errorSubscriber != null) s.Error(errorSubscriber);
+                            if (closeAction != null) s.Close(closeAction);
+
+                            s.Start();
+                        });
+                    }
+                    catch (Exception ex)
                     {
-                        Console.WriteLine("Zookeeper disconnected. Shutting down to restart...");
-                        restart = true;
-                        Shutdown();
-                    };
-                    _stream = _instance.Subscribe(_topic);
-
-                    _stream.Data(m => { lock (Lock) dataSubscriber(m); });
-
-                    if (errorSubscriber != null) _stream.Error(errorSubscriber);
-                    if (closeAction != null) _stream.Close(closeAction);
-
-                    _stream.Start();
+                        Logger.Error($"Exception starting consumer {_group} for {_topic}. Restarting...", ex);
+                        Restart();
+                    }
 
                     _running = true;
                 }
 
-                _stream.Block();
+                foreach (var s in _streams) s.Block();
 
-            } while (restart);
+            } while (_restart);
 
             _running = false;
         }
-        
+
+        private void Restart()
+        {
+            _restart = true;
+            Shutdown();
+        }
+
         public void Shutdown()
         {
             if (!_running) return;
+
             lock (Lock)
             {
                 if (!_running) return;

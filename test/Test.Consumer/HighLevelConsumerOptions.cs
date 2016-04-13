@@ -11,5 +11,7 @@ namespace Consumer
         public string Group { get; set; }
         [Option('t', "topic", Required = true, HelpText = "The name of the topic.")]
         public string Topic { get; set; }
+        [Option('h', "threads", Required = false, HelpText = "The number of consumer threads to run.", Default = 1)]
+        public int Threads { get; set; }
     }
 }

@@ -21,7 +21,7 @@ $consumerArgs = @( "chaos", "-z", $Zookeeper, "-g", $Group, "-t", $Topic, "-h", 
 
 $consumers = @()
 
-Write-Host "Starting $NumberOfConsumers consumers"
+Write-Host "Starting $NumberOfConsumers consumers with $ThreadsPerConsumer threads"
 
 for ($i = 0; $i -lt $NumberOfConsumers; $i++) {
     $process = Start-Process `

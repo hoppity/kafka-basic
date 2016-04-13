@@ -77,36 +77,37 @@ namespace Kafka.Basic.Abstracted
                             AutoCommit = false,
                             AutoOffsetReset = Offset.Earliest
                         });
+
+                        var streams = _consumer.CreateMessageStreams(
+                            new Dictionary<string, int>
+                            {
+                            {_topic, _threads}
+                            },
+                            new DefaultDecoder());
+
+                        _consumer.ZookeeperSessionExpired += (sender, args) =>
+                        {
+                            Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
+                            Restart();
+                        };
+                        _consumer.ZookeeperDisconnected += (sender, args) =>
+                        {
+                            Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
+                            Restart();
+                        };
+
+                        _running = true;
+
+                        tasks = streams[_topic]
+                            .Select(s => StartConsumer(s, dataSubscriber, errorSubscriber))
+                            .ToArray();
                     }
                     catch (Exception ex)
                     {
-                        Logger.Error($"Exception creating {_group} for {_topic}. Restarting...", ex);
+                        Logger.Error($"Exception starting consumer {_group} for {_topic}. Restarting...", ex);
                         Restart();
                         continue;
                     }
-                    var streams = _consumer.CreateMessageStreams(
-                        new Dictionary<string, int>
-                        {
-                            {_topic, _threads}
-                        },
-                        new DefaultDecoder());
-
-                    _consumer.ZookeeperSessionExpired += (sender, args) =>
-                    {
-                        Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
-                        Restart();
-                    };
-                    _consumer.ZookeeperDisconnected += (sender, args) =>
-                    {
-                        Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
-                        Restart();
-                    };
-
-                    _running = true;
-
-                    tasks = streams[_topic]
-                        .Select(s => StartConsumer(s, dataSubscriber, errorSubscriber))
-                        .ToArray();
                 }
 
                 Task.WaitAll(tasks);
