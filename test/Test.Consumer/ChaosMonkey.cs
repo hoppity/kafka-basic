@@ -53,7 +53,7 @@ namespace Consumer
 
                             if (call % waitModulus == 0)
                             {
-                                WriteLog("Faking a long consume operation by sending the current thread to sleep for 10s.");
+                                WriteLog("Faking a long consume operation by sending the current thread to sleep for 5s.");
                                 Thread.Sleep(5000);
                             }
 

@@ -80,7 +80,7 @@ namespace Kafka.Basic.Abstracted
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Exception creating {_group} for {_topic}. Restarting...", ex);
+                        Logger.Error($"Exception creating {_group} for {_topic}. Restarting...", ex);
                         Restart();
                         continue;
                     }
@@ -105,7 +105,7 @@ namespace Kafka.Basic.Abstracted
                     _running = true;
 
                     tasks = streams[_topic]
-                        .Select(s => StartConsumer(s, dataSubscriber, errorSubscriber, closeAction))
+                        .Select(s => StartConsumer(s, dataSubscriber, errorSubscriber))
                         .ToArray();
                 }
 
@@ -114,6 +114,7 @@ namespace Kafka.Basic.Abstracted
                 Logger.InfoFormat("Consumer {0} for {1} shut down.", _group, _topic);
             } while (_restart);
 
+            closeAction?.Invoke();
             _running = false;
         }
 
@@ -121,12 +122,12 @@ namespace Kafka.Basic.Abstracted
         private Task StartConsumer(
             IKafkaMessageStream<Client.Messages.Message> stream,
             Action<IEnumerable<ConsumedMessage>> dataSubscriber,
-            Action<Exception> errorSubscriber,
-            Action closeAction)
+            Action<Exception> errorSubscriber)
         {
             var completionSource = new TaskCompletionSource<bool>();
             var thread = new Thread(() =>
             {
+                Logger.Info($"Starting consumer thread {Thread.CurrentThread.ManagedThreadId}");
                 while (_consumer != null)
                 {
                     var tokenSource = new CancellationTokenSource(_batchTimeoutMs);
@@ -161,12 +162,11 @@ namespace Kafka.Basic.Abstracted
                         tokenSource.Dispose();
                     }
                 }
+                Logger.Info($"Ending consumer thread {Thread.CurrentThread.ManagedThreadId}");
                 completionSource.SetResult(true);
-                closeAction?.Invoke();
             });
 
             _threadList.Add(thread);
-            Console.WriteLine(_threadList.Count);
             thread.Start();
 
             return completionSource.Task;
@@ -193,6 +193,7 @@ namespace Kafka.Basic.Abstracted
 
         private void ShutdownInternal(bool force = false)
         {
+            Logger.Info($"Shutdown received for consumer {_group} on {_topic} with force:{force}");
             if (!_running) return;
             lock (Lock)
             {
@@ -203,7 +204,7 @@ namespace Kafka.Basic.Abstracted
 
                 var c = _consumer;
                 _consumer = null;
-                c.Dispose();
+                c?.Dispose();
                 _threadList.Clear();
             }
         }
