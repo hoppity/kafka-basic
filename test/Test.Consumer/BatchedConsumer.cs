@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using Kafka.Basic;
 using Metrics;
 
 namespace Consumer
@@ -14,10 +13,8 @@ namespace Consumer
         {
             var histogram = Metric.Histogram("batch.size", Unit.Items);
             var timer = Metric.Timer("message.latency", Unit.Events);
-            Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
-            using (var client = new KafkaClient(opts.ZkConnect))
-            using (var consumer = new Kafka.Basic.BatchedConsumer(client, opts.Group, opts.Topic, opts.BatchSizeMax, opts.BatchTimeoutMs))
+            using (var consumer = new Kafka.Basic.BatchedConsumer(opts.ZkConnect, opts.Group, opts.Topic, opts.Threads, opts.BatchTimeoutMs))
             {
                 ListenToConsole(consumer);
 

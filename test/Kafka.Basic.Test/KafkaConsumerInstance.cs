@@ -1,5 +1,9 @@
-﻿using Kafka.Client.Cfg;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
+using Kafka.Client.Serialization;
 using Moq;
 using Ploeh.AutoFixture;
 using Ploeh.AutoFixture.Xunit2;
@@ -13,7 +17,7 @@ namespace Kafka.Basic.Test
         private IFixture _fixture;
         private IKafkaConsumerInstance _consumerInstance;
         private Mock<IZookeeperConnection> _zkConnectorMock;
-        private Mock<IBalancedConsumer> _balancedConsumer; 
+        private Mock<IConsumerConnector> _consumerConnector;
 
         public KafkaConsumerInstance()
         {
@@ -36,11 +40,11 @@ namespace Kafka.Basic.Test
         private void SetupMocks()
         {
             _zkConnectorMock = _fixture.Create<Mock<IZookeeperConnection>>();
-            _balancedConsumer = _fixture.Create<Mock<IBalancedConsumer>>();
+            _consumerConnector = _fixture.Create<Mock<IConsumerConnector>>();
 
             _zkConnectorMock
                 .Setup(z => z.CreateConsumerConnector(It.IsAny<ConsumerOptions>()))
-                .Returns(_balancedConsumer.Object);
+                .Returns(_consumerConnector.Object);
         }
 
 
@@ -52,9 +56,9 @@ namespace Kafka.Basic.Test
 
 
         [Theory, AutoData]
-        public void Subscribe(string topicName)
+        public void Subscribe(string topicName, int threads)
         {
-            var stream = _consumerInstance.Subscribe(topicName);
+            var stream = _consumerInstance.Subscribe(topicName, threads);
 
             Assert.NotNull(stream);
         }
@@ -64,7 +68,7 @@ namespace Kafka.Basic.Test
         public void Commit()
         {
             _consumerInstance.Commit();
-            _balancedConsumer
+            _consumerConnector
                 .Verify(mock => mock.CommitOffsets(),
                 Times.AtLeastOnce());
         }
@@ -75,7 +79,7 @@ namespace Kafka.Basic.Test
         {
             _consumerInstance.Shutdown();
 
-            _balancedConsumer
+            _consumerConnector
                 .Verify(mock => mock.ReleaseAllPartitionOwnerships(),
                 Times.Once());
         }
@@ -85,7 +89,7 @@ namespace Kafka.Basic.Test
         public void Dispose()
         {
             _consumerInstance.Dispose();
-            _balancedConsumer
+            _consumerConnector
                 .Verify(mock => mock.Dispose(),
                 Times.Once());
         }

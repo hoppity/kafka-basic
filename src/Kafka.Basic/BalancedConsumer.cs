@@ -1,78 +1,129 @@
 ﻿using System;
 using System.Collections.Generic;
-using Kafka.Client.Cfg;
-using Kafka.Client.Consumers;
-using Kafka.Client.Serialization;
+using System.Linq;
+using System.Threading.Tasks;
+using Kafka.Client.Utils;
+using log4net;
 
 namespace Kafka.Basic
 {
-    public interface IBalancedConsumer : IDisposable
+    public interface IBalancedConsumer : IConsumer<ConsumedMessage> { }
+
+    public class BalancedConsumer : IBalancedConsumer
     {
-        event EventHandler Rebalanced;
-        event EventHandler ZookeeperDisconnected;
-        event EventHandler ZookeeperSessionExpired;
+        private const int DefaultNumberOfThreads = 1;
 
-        IDictionary<string, IList<IKafkaMessageStream<Client.Messages.Message>>> CreateMessageStreams(
-            IDictionary<string, int> topicThreadCount,
-            IDecoder<Client.Messages.Message> decoder
-            );
+        private static readonly object Lock = new object();
 
-        void CommitOffsets();
-        void ReleaseAllPartitionOwnerships();
-        void CommitOffset(string topic, int partition, long offset, bool setPosition);
-    }
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(BalancedConsumer));
 
-    internal class BalancedConsumer : IBalancedConsumer
-    {
-        private readonly IZookeeperConsumerConnector _connector;
+        private readonly IKafkaClient _client;
+        private readonly string _group;
+        private readonly string _topic;
+        private readonly int _threads;
+        private bool _running;
+        private IKafkaConsumerInstance _instance;
+        private IEnumerable<IKafkaConsumerStream> _streams;
+        private bool _restart;
 
-        public event EventHandler Rebalanced;
-        public event EventHandler ZookeeperDisconnected;
-        public event EventHandler ZookeeperSessionExpired;
-
-        public BalancedConsumer(ConsumerConfiguration config)
+        public BalancedConsumer(
+            IKafkaClient client,
+            string group,
+            string topic,
+            int threads = DefaultNumberOfThreads)
         {
-            _connector = new ZookeeperConsumerConnector(config, true, OnRebalanced, OnZookeeperDisconnected, OnZookeeperSessionExpired);
+            _client = client;
+            _group = group;
+            _topic = topic;
+            _threads = threads;
         }
 
-        public IDictionary<string, IList<IKafkaMessageStream<Client.Messages.Message>>> CreateMessageStreams(IDictionary<string, int> topicThreadCount, IDecoder<Client.Messages.Message> decoder)
+        public void Start(Action<ConsumedMessage> dataSubscriber, Action<Exception> errorSubscriber = null, Action closeAction = null)
         {
-            return _connector.CreateMessageStreams(topicThreadCount, decoder);
+            if (_running) return;
+
+            var consumerOptions = new ConsumerOptions
+            {
+                GroupName = _group,
+                AutoCommit = true
+            };
+
+            do
+            {
+                if (_restart) Task.Delay(5000).Wait();
+
+                lock (Lock)
+                {
+                    try
+                    {
+                        Logger.Info("Starting consumer.");
+
+                        var consumer = _client.Consumer(consumerOptions);
+
+                        _restart = false;
+
+                        _instance = consumer.Join();
+                        _instance.ZookeeperSessionExpired += (sender, args) =>
+                        {
+                            Logger.Warn("Zookeeper session expired. Shutting down to restart...");
+                            Restart();
+                        };
+                        _instance.ZookeeperDisconnected += (sender, args) =>
+                        {
+                            Logger.Warn("Zookeeper disconnected. Shutting down to restart...");
+                            Restart();
+                        };
+                        _streams = _instance.Subscribe(_topic, _threads).ToArray();
+
+                        _streams.ForEach(s =>
+                        {
+                            s.Data(dataSubscriber);
+
+                            if (errorSubscriber != null) s.Error(errorSubscriber);
+                            if (closeAction != null) s.Close(closeAction);
+
+                            s.Start();
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error($"Exception starting consumer {_group} for {_topic}. Restarting...", ex);
+                        Restart();
+                    }
+
+                    _running = true;
+                }
+
+                foreach (var s in _streams) s.Block();
+
+            } while (_restart);
+
+            _running = false;
         }
 
-        public void CommitOffsets()
+        private void Restart()
         {
-            _connector.CommitOffsets();
+            _restart = true;
+            Shutdown();
         }
 
-        public void ReleaseAllPartitionOwnerships()
+        public void Shutdown()
         {
-            _connector.ReleaseAllPartitionOwnerships();
-        }
+            if (!_running) return;
 
-        public void CommitOffset(string topic, int partition, long offset, bool setPosition)
-        {
-            _connector.CommitOffset(topic, partition, offset, setPosition);
-        }
+            lock (Lock)
+            {
+                if (!_running) return;
 
-        protected virtual void OnRebalanced(object sender, EventArgs e)
-        {
-            Rebalanced?.Invoke(sender, e);
-        }
-
-        protected virtual void OnZookeeperDisconnected(object sender, EventArgs e)
-        {
-            ZookeeperDisconnected?.Invoke(sender, e);
-        }
-
-        protected virtual void OnZookeeperSessionExpired(object sender, EventArgs e)
-        {
-            ZookeeperSessionExpired?.Invoke(sender, e);
+                _instance?.Shutdown();
+                _instance?.Dispose();
+                _instance = null;
+            }
         }
 
         public void Dispose()
         {
-            _connector.Dispose();
+            Shutdown();
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using Kafka.Basic;
 using Metrics;
@@ -14,34 +15,35 @@ namespace Consumer
             var zookeeperString = opts.ZkConnect;
             var testTopic = opts.Topic;
             var partition = opts.Partition;
-            var offset = opts.Offset;
-            
+
+            var partitions = partition == null
+                ? null
+                : new[] { partition.Value };
+
             var timer = Metric.Timer("Received", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
             using (var client = new KafkaClient(zookeeperString))
-            using (var consumer = client.SimpleConsumer())
-            using (var stream = consumer.Subscribe(testTopic, partition, offset))
+            using (var consumer = new Kafka.Basic.SimpleConsumer(client, testTopic, partitions))
             {
-                ListenToConsole(stream);
+                ListenToConsole(consumer);
 
-                stream
-                    .Data(message =>
+                consumer.Start(
+                    message =>
                     {
                         var time = DateTime.UtcNow.Ticks;
                         var value = long.Parse(message.Value);
                         var diff = (time - value) / 10000;
                         timer.Record(diff, TimeUnit.Milliseconds);
-                    })
-                    .Error(e => Console.Error.WriteLine(e.Message))
-                    .Start()
-                    .Block();
+                    },
+                    e => Console.Error.WriteLine(e.Message)
+                );
             }
 
             return 0;
         }
 
-        private void ListenToConsole(IKafkaConsumerStream stream)
+        private void ListenToConsole(Kafka.Basic.SimpleConsumer stream)
         {
             _consoleThread = new Thread(() =>
             {
@@ -53,16 +55,6 @@ namespace Consumer
                 while (true)
                 {
                     var input = Console.ReadKey(true);
-                    if (input.KeyChar == 'p')
-                    {
-                        stream.Pause();
-                        Console.WriteLine("Paused.");
-                    }
-                    if (input.KeyChar == 'r')
-                    {
-                        stream.Resume();
-                        Console.WriteLine("Resumed.");
-                    }
                     if (input.KeyChar == 'q')
                     {
                         Console.WriteLine("Shutting down...");
