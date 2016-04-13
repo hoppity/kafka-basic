@@ -62,8 +62,7 @@ namespace Kafka.Basic
                 Task[] tasks;
                 lock (Lock)
                 {
-                    Logger.InfoFormat("Starting batched consumer {0} for {1}.", _group, _topic);
-
+                    Logger.Info($"Starting batched consumer {_group} for {_topic}.");
                     _restart = false;
 
                     try
@@ -75,26 +74,28 @@ namespace Kafka.Basic
                             AutoOffsetReset = Offset.Earliest
                         });
 
-                        var streams = _consumer.CreateMessageStreams(
-                            new Dictionary<string, int> { { _topic, _threads } },
-                            new DefaultDecoder());
-
                         _consumer.ZookeeperSessionExpired += (sender, args) =>
                         {
-                            Logger.WarnFormat("Zookeeper session expired. Shutting down consumer {0} for {1} to restart...", _group, _topic);
+                            Logger.WarnFormat($"Zookeeper session expired. Shutting down consumer {_group} for {_topic} to restart...");
                             Restart();
                         };
                         _consumer.ZookeeperDisconnected += (sender, args) =>
                         {
-                            Logger.WarnFormat("Zookeeper disconnected. Shutting down consumer {0} for {1} to restart...", _group, _topic);
+                            Logger.WarnFormat($"Zookeeper disconnected. Shutting down consumer {_group} for {_topic} to restart...");
                             Restart();
                         };
 
-                        _running = true;
+                        var streams = _consumer.CreateMessageStreams(
+                            new Dictionary<string, int> { { _topic, _threads } },
+                            new DefaultDecoder());
 
                         tasks = streams[_topic]
                             .Select(s => StartConsumer(s, dataSubscriber, errorSubscriber))
                             .ToArray();
+
+                        Logger.Info($"Consumer {_consumer.ConsumerId} started with {tasks.Length} threads.");
+
+                        _running = true;
                     }
                     catch (Exception ex)
                     {
