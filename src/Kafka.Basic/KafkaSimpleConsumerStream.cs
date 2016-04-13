@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
@@ -13,15 +12,11 @@ namespace Kafka.Basic
 {
     public class KafkaSimpleConsumerStream : IKafkaConsumerStream
     {
-        public const string ClientId = "KafkaNetClient";
-        public const short VersionId = 0;
-
         private readonly string _topicName;
         private readonly int _partition;
 
         private readonly Thread _thread;
         private bool _running;
-        private int _correlationId;
 
         private KafkaSimpleManager<string, Message> _manager;
         private long _nextOffset;
@@ -39,7 +34,12 @@ namespace Kafka.Basic
             _partition = partition;
             _manager = zkConnect.CreateSimpleManager();
 
-            _manager.RefreshMetadata(0, ClientId, _correlationId++, _topicName, true);
+            _manager.RefreshMetadata(
+                KafkaConfig.VersionId,
+                KafkaConfig.ClientId,
+                KafkaConfig.NextCorrelationId(),
+                _topicName,
+                true);
 
             _consumer = _manager.GetConsumer(topicName, partition);
 
@@ -140,9 +140,9 @@ namespace Kafka.Basic
         {
             long earliest, latest;
             _manager.RefreshAndGetOffset(
-                VersionId,
-                ClientId,
-                _correlationId++,
+                KafkaConfig.VersionId,
+                KafkaConfig.ClientId,
+                KafkaConfig.NextCorrelationId(),
                 _topicName,
                 _partition,
                 true,
@@ -172,9 +172,10 @@ namespace Kafka.Basic
             {
                 try
                 {
-                    var response = _consumer.Fetch(ClientId,
+                    var response = _consumer.Fetch(
+                        KafkaConfig.ClientId,
                         _topicName,
-                        _correlationId++,
+                        KafkaConfig.NextCorrelationId(),
                         _partition,
                         _nextOffset,
                         ConsumerConfiguration.DefaultFetchSize,

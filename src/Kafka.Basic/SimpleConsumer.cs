@@ -52,9 +52,12 @@ namespace Kafka.Basic
 
                         if (_partitions == null)
                         {
+                            Logger.Info("Determining partitions from metadata.");
                             var meta = _client.Topic(_topic).GetMetadata();
                             _partitions = meta.PartitionsMetadata.Select(p => p.PartitionId).ToArray();
                         }
+
+                        Logger.Info($"Subscribing to {_topic} partitions {string.Join(",", _partitions)}");
 
                         _streams = _partitions
                             .Select(p => _consumer.Subscribe(_topic, p, (long)Offset.Latest))
