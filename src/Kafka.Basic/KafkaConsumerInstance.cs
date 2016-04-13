@@ -7,7 +7,7 @@ namespace Kafka.Basic
 {
     public interface IKafkaConsumerInstance : IDisposable
     {
-        event EventHandler Rebalanced;
+        event EventHandler<ConsumerRebalanceEventArgs> Rebalanced;
         event EventHandler ZookeeperDisconnected;
         event EventHandler ZookeeperSessionExpired;
 
@@ -41,12 +41,12 @@ namespace Kafka.Basic
             ZookeeperDisconnected?.Invoke(sender, e);
         }
 
-        protected virtual void OnRebalanced(object sender, EventArgs e)
+        protected virtual void OnRebalanced(object sender, ConsumerRebalanceEventArgs e)
         {
             Rebalanced?.Invoke(sender, e);
         }
 
-        public event EventHandler Rebalanced;
+        public event EventHandler<ConsumerRebalanceEventArgs> Rebalanced;
         public event EventHandler ZookeeperDisconnected;
         public event EventHandler ZookeeperSessionExpired;
 

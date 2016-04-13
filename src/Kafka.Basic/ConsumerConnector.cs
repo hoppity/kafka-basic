@@ -3,14 +3,18 @@ using System.Collections.Generic;
 using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
+using Kafka.Client.ZooKeeperIntegration.Events;
 
 namespace Kafka.Basic
 {
     public interface IConsumerConnector : IDisposable
     {
-        event EventHandler Rebalanced;
+        event EventHandler Rebalancing;
+        event EventHandler<ConsumerRebalanceEventArgs> Rebalanced;
         event EventHandler ZookeeperDisconnected;
         event EventHandler ZookeeperSessionExpired;
+
+        string ConsumerId { get; }
 
         IDictionary<string, IList<IKafkaMessageStream<Client.Messages.Message>>> CreateMessageStreams(
             IDictionary<string, int> topicThreadCount,
@@ -25,14 +29,16 @@ namespace Kafka.Basic
     internal class ConsumerConnector : IConsumerConnector
     {
         private readonly IZookeeperConsumerConnector _connector;
+        public string ConsumerId => _connector.GetConsumerIdString();
 
-        public event EventHandler Rebalanced;
+        public event EventHandler Rebalancing;
+        public event EventHandler<ConsumerRebalanceEventArgs> Rebalanced;
         public event EventHandler ZookeeperDisconnected;
         public event EventHandler ZookeeperSessionExpired;
 
         public ConsumerConnector(ConsumerConfiguration config)
         {
-            _connector = new ZookeeperConsumerConnector(config, true, OnRebalanced, OnZookeeperDisconnected, OnZookeeperSessionExpired);
+            _connector = new ZookeeperConsumerConnector(config, true, OnRebalancing, OnZookeeperDisconnected, OnZookeeperSessionExpired, OnRebalanced);
         }
 
         public IDictionary<string, IList<IKafkaMessageStream<Client.Messages.Message>>> CreateMessageStreams(IDictionary<string, int> topicThreadCount, IDecoder<Client.Messages.Message> decoder)
@@ -55,7 +61,12 @@ namespace Kafka.Basic
             _connector.CommitOffset(topic, partition, offset, setPosition);
         }
 
-        protected virtual void OnRebalanced(object sender, EventArgs e)
+        protected virtual void OnRebalancing(object sender, EventArgs e)
+        {
+            Rebalancing?.Invoke(sender, e);
+        }
+
+        protected virtual void OnRebalanced(object sender, ConsumerRebalanceEventArgs e)
         {
             Rebalanced?.Invoke(sender, e);
         }
