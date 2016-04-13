@@ -7,7 +7,8 @@
     $Group,
     $NumberOfMessages = 10000,
     $WaitBeforeKill = 60,
-    $NumberOfConsumers = 7
+    $NumberOfConsumers = 3,
+    $ThreadsPerConsumer = 2
 )
 
 $testDirectory = Split-Path -Parent $PSScriptRoot
@@ -16,7 +17,7 @@ $start = [datetime]::Now
 
 rm .\*rcv.txt
 
-$consumerArgs = @( "chaos", "-z", $Zookeeper, "-g", $Group, "-t", $Topic, "-s", "50", "-b", "100")
+$consumerArgs = @( "chaos", "-z", $Zookeeper, "-g", $Group, "-t", $Topic, "-h", $ThreadsPerConsumer, "-b", "100")
 
 $consumers = @()
 
@@ -39,7 +40,7 @@ Write-Host "Starting producer to publish $NumberOfMessages messages"
 
 $producerArgs = @( "-z", $Zookeeper, "-t", $Topic, "-b", "10", "-m", "$NumberOfMessages", "-s", "100")
 
-& ( Join-Path $testDirectory "Test.Producer\bin\Debug\Producer.exe" ) $producerArgs > foo.txt
+& ( Join-Path $testDirectory "Test.Producer\bin\Debug\Producer.exe" ) $producerArgs > producer.txt
 
 Write-Host "Finished publishing. Waiting $WaitBeforeKill seconds before terminating consumers."
 
