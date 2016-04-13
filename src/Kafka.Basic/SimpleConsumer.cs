@@ -46,7 +46,7 @@ namespace Kafka.Basic
 
                     try
                     {
-                        Logger.Info("Starting consumer.");
+                        Logger.Info($"Starting simple consumer for {_topic}.");
 
                         _consumer = _client.SimpleConsumer();
 
@@ -64,23 +64,26 @@ namespace Kafka.Basic
                         {
                             stream.Data(dataSubscriber);
                             if (errorSubscriber != null) stream.Error(errorSubscriber);
-                            if (closeAction != null) stream.Close(closeAction);
                             stream.Start();
                         }
+
+                        Logger.Info($"Simple consumer started with {_streams.Count()} threads.");
+                        _running = true;
                     }
                     catch (Exception ex)
                     {
                         Logger.Error($"Exception starting simple consumer for {_topic}. Restarting...", ex);
                         Restart();
+                        continue;
                     }
-
-                    _running = true;
                 }
 
                 _streams?.ForEach(s => s.Block());
 
+                Logger.Info($"Simple consumer for {_topic} shut down.");
             } while (_restart);
 
+            closeAction?.Invoke();
             _running = false;
         }
 

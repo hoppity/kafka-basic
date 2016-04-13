@@ -54,50 +54,66 @@ namespace Kafka.Basic
 
                 lock (Lock)
                 {
+                    Logger.Info($"Starting balanced consumer {_group} for {_topic}.");
+                    _restart = false;
+
                     try
                     {
-                        Logger.Info("Starting consumer.");
-
                         var consumer = _client.Consumer(consumerOptions);
-
-                        _restart = false;
 
                         _instance = consumer.Join();
                         _instance.ZookeeperSessionExpired += (sender, args) =>
                         {
-                            Logger.Warn("Zookeeper session expired. Shutting down to restart...");
+                            Logger.WarnFormat($"Zookeeper session expired. Shutting down consumer {_group} for {_topic} to restart...");
                             Restart();
                         };
                         _instance.ZookeeperDisconnected += (sender, args) =>
                         {
-                            Logger.Warn("Zookeeper disconnected. Shutting down to restart...");
+                            Logger.WarnFormat($"Zookeeper disconnected. Shutting down consumer {_group} for {_topic} to restart...");
                             Restart();
                         };
                         _streams = _instance.Subscribe(_topic, _threads).ToArray();
 
                         _streams.ForEach(s =>
                         {
-                            s.Data(dataSubscriber);
+                            s.Data(m =>
+                            {
+                                try
+                                {
+                                    dataSubscriber(m);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Error($"Exception in consumer {_group} for {_topic}. Restarting...", ex);
+                                    errorSubscriber?.Invoke(ex);
+
+                                    Restart();
+                                }
+                            });
 
                             if (errorSubscriber != null) s.Error(errorSubscriber);
-                            if (closeAction != null) s.Close(closeAction);
 
                             s.Start();
                         });
+
+                        Logger.Info($"Consumer {_instance.Id} started with {_streams.Count()} threads.");
+
+                        _running = true;
                     }
                     catch (Exception ex)
                     {
                         Logger.Error($"Exception starting consumer {_group} for {_topic}. Restarting...", ex);
                         Restart();
+                        continue;
                     }
-
-                    _running = true;
                 }
 
                 foreach (var s in _streams) s.Block();
 
+                Logger.Info($"Consumer {_group} for {_topic} shut down.");
             } while (_restart);
 
+            closeAction?.Invoke();
             _running = false;
         }
 
