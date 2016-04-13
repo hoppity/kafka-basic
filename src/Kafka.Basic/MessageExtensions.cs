@@ -25,7 +25,8 @@ namespace Kafka.Basic
                 Partition = message.PartitionId ?? 0,
                 Offset = message.Offset,
                 Key = message.Key.Decode(),
-                Value = message.Payload.Decode()
+                Value = message.Payload.Decode(),
+                Codec = (Compression)message.CompressionCodec
             };
         }
     }
