@@ -57,10 +57,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Abstracted\BalancedConsumer.cs" />
-    <Compile Include="Abstracted\IAbstractedConsumer.cs" />
+    <Compile Include="BalancedConsumer.cs" />
+    <Compile Include="IConsumer.cs" />
     <Compile Include="ConsumerConnector.cs" />
-    <Compile Include="Abstracted\BatchedConsumer.cs" />
+    <Compile Include="BatchedConsumer.cs" />
     <Compile Include="Compression.cs" />
     <Compile Include="ConsumerOptions.cs" />
     <Compile Include="EncodingExtensions.cs" />

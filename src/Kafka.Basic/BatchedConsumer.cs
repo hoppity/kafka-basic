@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Threading.Tasks.Dataflow;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
-using Kafka.Client.Utils;
 using log4net;
 
-namespace Kafka.Basic.Abstracted
+namespace Kafka.Basic
 {
-    public interface IBatchedConsumer : IAbstractedConsumer<IEnumerable<ConsumedMessage>> { }
+    public interface IBatchedConsumer : IConsumer<IEnumerable<ConsumedMessage>> { }
 
     public class BatchedConsumer : IBatchedConsumer
     {

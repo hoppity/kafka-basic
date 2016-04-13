@@ -13,9 +13,8 @@ namespace Consumer
         {
             var histogram = Metric.Histogram("batch.size", Unit.Items);
             var timer = Metric.Timer("message.latency", Unit.Events);
-            Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
-            using (var consumer = new Kafka.Basic.Abstracted.BatchedConsumer(opts.ZkConnect, opts.Group, opts.Topic, opts.Threads, opts.BatchTimeoutMs))
+            using (var consumer = new Kafka.Basic.BatchedConsumer(opts.ZkConnect, opts.Group, opts.Topic, opts.Threads, opts.BatchTimeoutMs))
             {
                 ListenToConsole(consumer);
 
@@ -38,7 +37,7 @@ namespace Consumer
             return 0;
         }
 
-        private void ListenToConsole(Kafka.Basic.Abstracted.BatchedConsumer consumer)
+        private void ListenToConsole(Kafka.Basic.BatchedConsumer consumer)
         {
             _consoleThread = new Thread(() =>
             {

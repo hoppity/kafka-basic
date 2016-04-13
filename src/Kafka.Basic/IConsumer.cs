@@ -1,8 +1,8 @@
 using System;
 
-namespace Kafka.Basic.Abstracted
+namespace Kafka.Basic
 {
-    public interface IAbstractedConsumer<out T> : IDisposable
+    public interface IConsumer<out T> : IDisposable
     {
         void Start(
             Action<T> dataSubscriber,

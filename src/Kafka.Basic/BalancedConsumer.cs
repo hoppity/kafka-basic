@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Kafka.Client.Utils;
 using log4net;
 
-namespace Kafka.Basic.Abstracted
+namespace Kafka.Basic
 {
-    public interface IBalancedConsumer : IAbstractedConsumer<ConsumedMessage> { }
+    public interface IBalancedConsumer : IConsumer<ConsumedMessage> { }
 
     public class BalancedConsumer : IBalancedConsumer
     {

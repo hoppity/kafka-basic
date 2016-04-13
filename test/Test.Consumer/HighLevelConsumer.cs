@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Threading;
 using Kafka.Basic;
-using Kafka.Basic.Abstracted;
 using Metrics;
 
 namespace Consumer
