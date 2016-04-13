@@ -7,6 +7,7 @@ namespace Kafka.Basic
         IKafkaTopic Topic(string name);
         IKafkaConsumer Consumer(string groupName);
         IKafkaConsumer Consumer(ConsumerOptions options);
+        IKafkaSimpleConsumer SimpleConsumer();
     }
 
     public class KafkaClient : IKafkaClient

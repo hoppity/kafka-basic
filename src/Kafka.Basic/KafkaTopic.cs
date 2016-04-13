@@ -8,16 +8,19 @@ namespace Kafka.Basic
     public interface IKafkaTopic : IDisposable
     {
         void Send(params Message[] messages);
+        TopicMetadata GetMetadata();
     }
 
     public class KafkaTopic : IKafkaTopic
     {
+        private readonly IZookeeperConnection _zkConnect;
         private readonly string _name;
         private readonly IProducer<string, KafkaMessage> _producer;
         private readonly IZookeeperClient _zkClient;
 
         public KafkaTopic(IZookeeperConnection zkConnect, string name)
         {
+            _zkConnect = zkConnect;
             _name = name;
             _zkClient = zkConnect.CreateClient();
             _producer = _zkClient.CreateProducer<string, KafkaMessage>();
@@ -28,6 +31,17 @@ namespace Kafka.Basic
             _producer.Send(
                 messages.Select(m => m.AsProducerData(_name))
                 );
+        }
+
+        public TopicMetadata GetMetadata()
+        {
+            return _zkConnect.CreateSimpleManager()
+                .RefreshMetadata(
+                    KafkaSimpleConsumerStream.VersionId,
+                    KafkaSimpleConsumerStream.ClientId,
+                    0,
+                    _name,
+                    false);
         }
 
         public void Dispose()

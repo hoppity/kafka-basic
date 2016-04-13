@@ -13,8 +13,8 @@ namespace Kafka.Basic
 {
     public class KafkaSimpleConsumerStream : IKafkaConsumerStream
     {
-        private const string ClientId = "KafkaNetClient";
-        private const short VersionId = 0;
+        public const string ClientId = "KafkaNetClient";
+        public const short VersionId = 0;
 
         private readonly string _topicName;
         private readonly int _partition;

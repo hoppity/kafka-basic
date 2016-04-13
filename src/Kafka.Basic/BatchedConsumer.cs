@@ -76,10 +76,7 @@ namespace Kafka.Basic
                         });
 
                         var streams = _consumer.CreateMessageStreams(
-                            new Dictionary<string, int>
-                            {
-                            {_topic, _threads}
-                            },
+                            new Dictionary<string, int> { { _topic, _threads } },
                             new DefaultDecoder());
 
                         _consumer.ZookeeperSessionExpired += (sender, args) =>

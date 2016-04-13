@@ -9,9 +9,7 @@ namespace Consumer
         public string ZkConnect { get; set; }
         [Option('t', "topic", Required = true, HelpText = "The name of the topic.")]
         public string Topic { get; set; }
-        [Option('p', "partition", Required = true, HelpText = "The identifier of the partition.")]
-        public int Partition { get; set; }
-        [Option('o', "offset", HelpText = "The starting offset (-2 = earliest, -1 = latest).", Default = Kafka.Basic.Offset.Latest)]
-        public long Offset { get; set; }
+        [Option('p', "partition", Required = false, HelpText = "The identifier of the partition to listen to. Will listen to all if not specified.")]
+        public int? Partition { get; set; }
     }
 }
