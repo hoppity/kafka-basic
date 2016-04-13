@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Kafka.Client.Serialization;
+using Kafka.Client.ZooKeeperIntegration.Events;
 
 namespace Kafka.Basic
 {
@@ -11,6 +12,7 @@ namespace Kafka.Basic
         event EventHandler ZookeeperDisconnected;
         event EventHandler ZookeeperSessionExpired;
 
+        string Id { get; }
         IKafkaConsumerStream Subscribe(string topicName);
         IEnumerable<IKafkaConsumerStream> Subscribe(string topicName, int threads);
         void Commit();
@@ -22,6 +24,8 @@ namespace Kafka.Basic
     {
         private readonly List<IKafkaConsumerStream> _streams = new List<IKafkaConsumerStream>();
         private readonly IConsumerConnector _consumerConnector;
+
+        public string Id => _consumerConnector.ConsumerId;
 
         public KafkaConsumerInstance(IZookeeperConnection zkConnect, ConsumerOptions options)
         {
