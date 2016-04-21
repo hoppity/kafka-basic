@@ -5,20 +5,30 @@ using System.Threading;
 using System.Threading.Tasks;
 using Kafka.Client.Consumers;
 using Kafka.Client.Serialization;
+using Kafka.Client.ZooKeeperIntegration.Events;
 using log4net;
 
 namespace Kafka.Basic
 {
-    public interface IBatchedConsumer : IConsumer<IEnumerable<ConsumedMessage>> { }
+    public interface IBatchedConsumer : IConsumer<IEnumerable<ConsumedMessage>>
+    {
+        event EventHandler<ConsumerRebalanceEventArgs> Rebalanced;
+        event EventHandler ZookeeperDisconnected;
+        event EventHandler ZookeeperSessionExpired;
+    }
 
     public class BatchedConsumer : IBatchedConsumer
     {
         public const int DefaultNumberOfThreads = 1;
         public const int DefaultBatchTimeoutMs = 100;
+        private const int RestartMsDelay = 5000;
 
         private static readonly object Lock = new object();
-
         private static readonly ILog Logger = LogManager.GetLogger(typeof(BatchedConsumer));
+
+        public event EventHandler<ConsumerRebalanceEventArgs> Rebalanced;
+        public event EventHandler ZookeeperDisconnected;
+        public event EventHandler ZookeeperSessionExpired;
 
         private readonly ZookeeperConnection _connection;
         private readonly string _group;
@@ -55,7 +65,7 @@ namespace Kafka.Basic
             _restart = false;
             do
             {
-                if (_restart) Task.Delay(5000).Wait();
+                if (_restart) Task.Delay(RestartMsDelay).Wait();
 
                 if (_forceShutdown) break;
 
@@ -76,14 +86,17 @@ namespace Kafka.Basic
 
                         _consumer.ZookeeperSessionExpired += (sender, args) =>
                         {
+                            OnZookeeperSessionExpired();
                             Logger.WarnFormat($"Zookeeper session expired. Shutting down consumer {_group} for {_topic} to restart...");
                             Restart();
                         };
                         _consumer.ZookeeperDisconnected += (sender, args) =>
                         {
+                            OnZookeeperDisconnected();
                             Logger.WarnFormat($"Zookeeper disconnected. Shutting down consumer {_group} for {_topic} to restart...");
                             Restart();
                         };
+                        _consumer.Rebalanced += (sender, args) => OnRebalanced(args);
 
                         var streams = _consumer.CreateMessageStreams(
                             new Dictionary<string, int> { { _topic, _threads } },
@@ -208,6 +221,21 @@ namespace Kafka.Basic
         public void Dispose()
         {
             Shutdown();
+        }
+
+        protected virtual void OnRebalanced(ConsumerRebalanceEventArgs e)
+        {
+            Rebalanced?.Invoke(this, e);
+        }
+
+        protected virtual void OnZookeeperDisconnected()
+        {
+            ZookeeperDisconnected?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected virtual void OnZookeeperSessionExpired()
+        {
+            ZookeeperSessionExpired?.Invoke(this, EventArgs.Empty);
         }
     }
 }
