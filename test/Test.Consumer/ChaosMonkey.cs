@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Threading;
-using Kafka.Basic;
 using Metrics;
 
 namespace Consumer
@@ -10,7 +9,7 @@ namespace Consumer
     {
         static void WriteLog(string message, Exception exception = null)
         {
-            Console.WriteLine(message + (exception != null ? ": " + exception : string.Empty));
+            Console.WriteLine(DateTime.UtcNow.ToString("O") + "-" + message + (exception != null ? ": " + exception : string.Empty));
         }
 
         public int Start(ChaosMonkeyOptions opts)
@@ -22,7 +21,7 @@ namespace Consumer
             var exceptionModulus = random.Next(76, 100);
             var waitModulus = random.Next(50, 75);
 
-            using (var consumer = new Kafka.Basic.BatchedConsumer(opts.ZkConnect, opts.Group, opts.Topic, opts.Threads, opts.BatchTimeoutMs))
+            using (var consumer = new Kafka.Basic.BatchedConsumer(opts.ZkConnect, opts.Group, opts.Topic, opts.Threads, opts.BatchTimeoutMs, opts.MaxBatchSize))
             {
                 var call = 0;
                 consumer

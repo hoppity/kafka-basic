@@ -21,6 +21,7 @@ namespace Kafka.Basic
     {
         public const int DefaultNumberOfThreads = 1;
         public const int DefaultBatchTimeoutMs = 100;
+        public const int DefaultMaxBatchSize = 1000;
         private const int RestartMsDelay = 5000;
 
         private static readonly object Lock = new object();
@@ -35,6 +36,7 @@ namespace Kafka.Basic
         private readonly string _topic;
         private readonly int _threads;
         private readonly int _batchTimeoutMs;
+        private readonly int _maxBatchSize;
 
         private bool _running;
         private bool _forceShutdown;
@@ -46,13 +48,15 @@ namespace Kafka.Basic
             string group,
             string topic,
             int threads = DefaultNumberOfThreads,
-            int batchTimeoutMs = DefaultBatchTimeoutMs)
+            int batchTimeoutMs = DefaultBatchTimeoutMs,
+            int maxBatchSize = DefaultMaxBatchSize)
         {
             _connection = new ZookeeperConnection(connection);
             _group = group;
             _topic = topic;
             _threads = threads;
             _batchTimeoutMs = batchTimeoutMs;
+            _maxBatchSize = maxBatchSize;
         }
 
         public void Start(
@@ -147,16 +151,23 @@ namespace Kafka.Basic
                             .Select(message => message.AsConsumedMessage())
                             .ToArray();
 
+                        Logger.Debug($"Received {messages.Length} messages.");
                         if (messages.Length == 0) continue;
 
-                        dataSubscriber(messages);
+                        for (var i = 0; i < messages.Length; i += _maxBatchSize)
+                        {
+                            var taken = messages.Skip(i).Take(_maxBatchSize).ToArray();
+                            Logger.Debug($"Skip {i}, take {_maxBatchSize}, get {taken.Length}.");
 
-                        var map = messages
-                            .GroupBy(m => m.Partition)
-                            .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset + 1));
+                            dataSubscriber(taken);
 
-                        foreach (var kvp in map)
-                            Commit(kvp.Key, kvp.Value);
+                            var map = taken
+                                .GroupBy(m => m.Partition)
+                                .ToDictionary(kvp => kvp.Key, kvp => kvp.Max(m => m.Offset + 1));
+
+                            foreach (var kvp in map)
+                                Commit(kvp.Key, kvp.Value);
+                        }
                     }
                     catch (Exception ex)
                     {
