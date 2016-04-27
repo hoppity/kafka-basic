@@ -37,9 +37,9 @@ namespace Kafka.Basic
         {
             return _zkConnect.CreateSimpleManager()
                 .RefreshMetadata(
-                    KafkaSimpleConsumerStream.VersionId,
-                    KafkaSimpleConsumerStream.ClientId,
-                    0,
+                    KafkaConfig.VersionId,
+                    KafkaConfig.ClientId,
+                    KafkaConfig.NextCorrelationId(),
                     _name,
                     false);
         }

@@ -17,7 +17,7 @@ $start = [datetime]::Now
 
 rm .\*rcv.txt
 
-$consumerArgs = @( "chaos", "-z", $Zookeeper, "-g", $Group, "-t", $Topic, "-h", $ThreadsPerConsumer, "-b", "100")
+$consumerArgs = @( "chaos", "-z", $Zookeeper, "-g", $Group, "-t", $Topic, "-h", $ThreadsPerConsumer, "-b", "100", "-s", "100")
 
 $consumers = @()
 
@@ -73,5 +73,5 @@ Write-Host "Total unique   : $uniqueMessages"
 Write-Host "Total time     : $time"
 
 if ( $uniqueMessages -ne $NumberOfMessages ) {
-    Write-Error "Expected to receive $NumberOfMessages unique messages, but only received $uniqueMessages."
+    Write-Error "Expected to receive $NumberOfMessages unique messages, but received $uniqueMessages."
 }

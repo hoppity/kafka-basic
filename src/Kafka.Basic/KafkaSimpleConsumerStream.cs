@@ -1,27 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Kafka.Client.Cfg;
 using Kafka.Client.Consumers;
 using Kafka.Client.Helper;
 using Kafka.Client.Messages;
 using Kafka.Client.Utils;
+using log4net;
 
 namespace Kafka.Basic
 {
     public class KafkaSimpleConsumerStream : IKafkaConsumerStream
     {
-        public const string ClientId = "KafkaNetClient";
-        public const short VersionId = 0;
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(KafkaSimpleConsumerStream));
 
         private readonly string _topicName;
         private readonly int _partition;
 
         private readonly Thread _thread;
         private bool _running;
-        private int _correlationId;
 
         private KafkaSimpleManager<string, Message> _manager;
         private long _nextOffset;
@@ -39,7 +37,12 @@ namespace Kafka.Basic
             _partition = partition;
             _manager = zkConnect.CreateSimpleManager();
 
-            _manager.RefreshMetadata(0, ClientId, _correlationId++, _topicName, true);
+            _manager.RefreshMetadata(
+                KafkaConfig.VersionId,
+                KafkaConfig.ClientId,
+                KafkaConfig.NextCorrelationId(),
+                _topicName,
+                true);
 
             _consumer = _manager.GetConsumer(topicName, partition);
 
@@ -118,13 +121,7 @@ namespace Kafka.Basic
                 {
                     try
                     {
-                        _dataSubscriber(new ConsumedMessage
-                        {
-                            Partition = mo.Message.PartitionId ?? 0,
-                            Offset = mo.Message.Offset,
-                            Key = mo.Message.Key.Decode(),
-                            Value = mo.Message.Payload.Decode()
-                        });
+                        _dataSubscriber(mo.Message.AsConsumedMessage());
                     }
                     catch (Exception ex)
                     {
@@ -140,9 +137,9 @@ namespace Kafka.Basic
         {
             long earliest, latest;
             _manager.RefreshAndGetOffset(
-                VersionId,
-                ClientId,
-                _correlationId++,
+                KafkaConfig.VersionId,
+                KafkaConfig.ClientId,
+                KafkaConfig.NextCorrelationId(),
                 _topicName,
                 _partition,
                 true,
@@ -172,9 +169,10 @@ namespace Kafka.Basic
             {
                 try
                 {
-                    var response = _consumer.Fetch(ClientId,
+                    var response = _consumer.Fetch(
+                        KafkaConfig.ClientId,
                         _topicName,
-                        _correlationId++,
+                        KafkaConfig.NextCorrelationId(),
                         _partition,
                         _nextOffset,
                         ConsumerConfiguration.DefaultFetchSize,
@@ -194,14 +192,14 @@ namespace Kafka.Basic
 
                     if (partitionData.Error == ErrorMapping.OffsetOutOfRangeCode)
                     {
-                        var error = $"PullMessage OffsetOutOfRangeCode,change to Latest,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        Logger.Warn($"PullMessage OffsetOutOfRangeCode,change to Latest,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}");
                         GetNextOffset();
                         return null;
                     }
 
                     if (partitionData.Error != ErrorMapping.NoError)
                     {
-                        var error = $"PullMessage ErrorCode={partitionData.Error},topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        Logger.Warn($"PullMessage ErrorCode={partitionData.Error},topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},FetchOffset={_nextOffset},retryCount={retryCount},maxRetry={maxRetry}");
                         GetNextOffset();
                         return null;
                     }
@@ -216,7 +214,7 @@ namespace Kafka.Basic
 
                     if (count + _nextOffset != lastOffset + 1)
                     {
-                        var error = $"PullMessage offset payloadCount out-of-sync,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},payloadCount={count},FetchOffset={_nextOffset},lastOffset={lastOffset},retryCount={retryCount},maxRetry={maxRetry}";
+                        Logger.Warn($"PullMessage offset payloadCount out-of-sync,topic={_topicName},leader={_consumer.Config.Broker},partition={_partition},payloadCount={count},FetchOffset={_nextOffset},lastOffset={lastOffset},retryCount={retryCount},maxRetry={maxRetry}");
                         GetNextOffset();
                     }
 

@@ -15,5 +15,7 @@ namespace Consumer
         public int Threads { get; set; }
         [Option('b', "batchTimeoutMs", Required = false, HelpText = "The maximum time to wait for messages to batch.", Default = Kafka.Basic.BatchedConsumer.DefaultBatchTimeoutMs)]
         public int BatchTimeoutMs { get; set; }
+        [Option('s', "maxBatchSize", Required = false, HelpText = "The maximum number of messages in a batch.", Default = Kafka.Basic.BatchedConsumer.DefaultBatchTimeoutMs)]
+        public int MaxBatchSize { get; set; }
     }
 }

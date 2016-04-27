@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using System.Threading;
 using Kafka.Client.Consumers;
 
@@ -92,13 +91,7 @@ namespace Kafka.Basic
                     if (!_stream.iterator.MoveNext()) continue;
                     var message = _stream.iterator.Current;
 
-                    _dataSubscriber(new ConsumedMessage
-                    {
-                        Partition = message.PartitionId ?? 0,
-                        Offset = message.Offset,
-                        Key = message.Key.Decode(),
-                        Value = message.Payload.Decode()
-                    });
+                    _dataSubscriber(message.AsConsumedMessage());
                 }
                 catch (Exception ex)
                 {

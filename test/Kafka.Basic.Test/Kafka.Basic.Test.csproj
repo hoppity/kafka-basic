@@ -96,6 +96,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="given_a_message\when_transforming_to_consumed_message.cs" />
     <Compile Include="KafkaConsumerInstance.cs" />
     <Compile Include="given_a_message\when_transforming_to_producer_data.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
