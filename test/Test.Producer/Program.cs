@@ -21,14 +21,11 @@ namespace Producer
 
         private static int Run(Options options)
         {
-            var zkConnect = options.ZkConnect;
-            var testTopic = options.Topic;
-
             var timer = Metric.Timer("Sent", Unit.Events);
             Metric.Config.WithReporting(r => r.WithConsoleReport(TimeSpan.FromSeconds(5)));
 
-            var client = new KafkaClient(zkConnect);
-            var topic = client.Topic(testTopic);
+            var client = new KafkaClient(options.ZkConnect);
+            var topic = client.Topic(options.Topic);
 
             var published = 0;
             var stop = false;

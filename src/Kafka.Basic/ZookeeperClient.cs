@@ -13,6 +13,7 @@ namespace Kafka.Basic
     {
         IEnumerable<Broker> GetAllBrokers();
         IProducer<TKey, TMessage> CreateProducer<TKey, TMessage>();
+        IProducer<TKey, TMessage> CreateProducer<TKey, TMessage>(ProducerConfig config);
     }
 
     public class ZookeeperClient : IZookeeperClient
@@ -36,7 +37,12 @@ namespace Kafka.Basic
 
         public IProducer<TKey, TMessage> CreateProducer<TKey, TMessage>()
         {
-            var config = new ProducerConfiguration(
+            return CreateProducer<TKey, TMessage>(ProducerConfig.Default());
+        }
+
+        public IProducer<TKey, TMessage> CreateProducer<TKey, TMessage>(ProducerConfig config)
+        {
+            var producerConfiguration = new ProducerConfiguration(
                 GetAllBrokers()
                     .Select(b => new BrokerConfiguration
                     {
@@ -44,9 +50,12 @@ namespace Kafka.Basic
                         Host = b.Host,
                         Port = b.Port
                     }).ToList()
-                );
+                )
+            {
+                RequiredAcks = config.Acks
+            };
 
-            return new Producer<TKey, TMessage>(config);
+            return new Producer<TKey, TMessage>(producerConfiguration);
         }
 
         public void Dispose()
