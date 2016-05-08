@@ -109,3 +109,18 @@ Fires up a Simple Producer and sends messages with timestamps.
                   98% <= 2.00 ms
                   99% <= 2.00 ms
                 99.9% <= 16.00 ms
+
+### Logging
+
+KafkaNet uses Log4Net for logging. Others use Serilog. Luckily, theres a nifty little helper in this project that sends all Log4Net logs to serilog.
+
+    // Set up with defaults - logger = Log.Logger, minimumLevel = Warning
+    KafkaLogging.Configure();
+
+	// or with custom logger and minimumLevel = Warning
+	KafkaLogging.Configure(myLogger);
+
+	// or with default logger and minimumLevel = Debug
+	KafkaLogging.Configure(LogEventLevel.Debug);
+
+Whatever you do here, remember that it will only work once! Once you've called configure any subsequent calls will be ignored.
