@@ -96,6 +96,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="equality_comparers\when_comparing_consumed_messages - Copy.cs" />
+    <Compile Include="equality_comparers\when_comparing_kafka_messages.cs" />
     <Compile Include="given_a_message\when_transforming_to_consumed_message.cs" />
     <Compile Include="KafkaConsumerInstance.cs" />
     <Compile Include="given_a_message\when_transforming_to_producer_data.cs" />

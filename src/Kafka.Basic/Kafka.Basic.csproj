@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BalancedConsumer.cs" />
+    <Compile Include="Comparers.cs" />
     <Compile Include="IConsumer.cs" />
     <Compile Include="ConsumerConnector.cs" />
     <Compile Include="BatchedConsumer.cs" />

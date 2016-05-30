@@ -148,6 +148,7 @@ namespace Kafka.Basic
                     {
                         var cancellable = stream.GetCancellable(tokenSource.Token);
                         var messages = cancellable
+                            .Distinct(new KafkaMessageCompare())
                             .Select(message => message.AsConsumedMessage())
                             .ToArray();
 
@@ -156,7 +157,11 @@ namespace Kafka.Basic
 
                         for (var i = 0; i < messages.Length; i += _maxBatchSize)
                         {
-                            var taken = messages.Skip(i).Take(_maxBatchSize).ToArray();
+                            var taken = messages
+                                .Skip(i)
+                                .Take(_maxBatchSize)
+                                .ToArray();
+
                             Logger.Debug($"Skip {i}, take {_maxBatchSize}, get {taken.Length}.");
 
                             dataSubscriber(taken);
