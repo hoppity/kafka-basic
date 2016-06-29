@@ -156,6 +156,8 @@ namespace Kafka.Basic
 
                         for (var i = 0; i < messages.Length; i += _maxBatchSize)
                         {
+                            if (_consumer == null) break;
+
                             var taken = messages.Skip(i).Take(_maxBatchSize).ToArray();
                             Logger.Debug($"Skip {i}, take {_maxBatchSize}, get {taken.Length}.");
 
